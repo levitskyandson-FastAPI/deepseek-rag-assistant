@@ -1,0 +1,29 @@
+# DeepSeek RAG Assistant
+
+Корпоративный ИИ-ассистент с RAG (Retrieval-Augmented Generation) на базе:
+- **DeepSeek** — LLM и эмбеддинги
+- **Supabase** — PostgreSQL + pgvector (векторный поиск)
+- **FastAPI** — высокопроизводительный бэкенд
+
+## Возможности
+- Загрузка документов, автоматическое чанкирование, эмбеддинги
+- Векторный поиск по базе знаний
+- Ответы строго по документам (отсутствие галлюцинаций)
+- Поддержка контекста до 1M токенов (DeepSeek)
+- Готовность к on-premise развёртыванию
+
+## Быстрый старт
+1. Клонируйте репозиторий
+2. Установите зависимости: `pip install -r requirements.txt`
+3. Создайте проект в Supabase, выполните `migrations/init.sql`
+4. Заполните `.env` своими ключами
+5. Запустите: `uvicorn main:app --reload`
+6. Документация API: `http://localhost:8000/docs`
+
+## Структура проекта
+- `routers/` — эндпоинты FastAPI
+- `services/` — бизнес-логика (DeepSeek, Supabase, RAG)
+- `models/` — Pydantic-схемы
+- `core/` — утилиты (логгер)
+- `migrations/` — SQL-скрипты для Supabase
+- `tests/` — юнит-тесты
