@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-dotenv
+httpx
+supabase
+python-telegram-bot
+nest_asyncio
+loguru
+tenacity
+PyPDF2
+python-multipart
+pydantic-settings
