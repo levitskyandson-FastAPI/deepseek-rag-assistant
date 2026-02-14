@@ -6,8 +6,10 @@ async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
                     preferred_date: str = None, pain: str = None, 
                     extra_data: dict = None):
     try:
+        logger.info(f"📥 save_lead вызван: user_id={telegram_user_id}, phone={phone}, name={name}, company={company}")
+        
         if not phone:
-            logger.warning("Попытка сохранить лид без телефона")
+            logger.warning("❌ Попытка сохранить лид без телефона")
             return None
 
         data = {
@@ -25,8 +27,9 @@ async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
         if preferred_date:
             data["preferred_date"] = preferred_date
 
+        logger.info(f"📦 Данные для вставки: {data}")
         result = supabase.table("leads").insert(data).execute()
-        logger.info(f"✅ Лид сохранён для пользователя {telegram_user_id}, phone: {phone}")
+        logger.info(f"✅ Лид сохранён, результат: {result.data}")
         return result.data
     except Exception as e:
         logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
