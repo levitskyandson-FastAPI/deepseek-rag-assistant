@@ -15,6 +15,10 @@ from core.logger import logger  # импортируем логгер
 
 load_dotenv()
 
+import os
+print(f"🚀 Starting bot with PID: {os.getpid()}")
+print(f"🔑 TELEGRAM_TOKEN starts with: {TELEGRAM_TOKEN[:10]}...")
+
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 API_URL = "https://deepseek-rag-assistant-1-ldph.onrender.com/chat/"
 USER_ID = "levitsky_agency"
