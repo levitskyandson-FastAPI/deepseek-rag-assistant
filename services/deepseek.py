@@ -5,6 +5,7 @@ from services.rag import retrieve_relevant_docs
 from core.logger import logger
 
 async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int = 2000) -> str:
+    """Базовый вызов DeepSeek Chat API"""
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.deepseek_api_url}/chat/completions",
@@ -24,10 +25,17 @@ async def ask_with_rag(
     user_id: Optional[str] = None,
     use_rag: bool = True
 ) -> Tuple[str, List[str]]:
+    """
+    Получить ответ от DeepSeek с подгрузкой контекста из RAG.
+    Возвращает (ответ, список источников).
+    """
     sources = []
     
     if use_rag:
+        logger.info(f"🔍 RAG: поиск для user_id={user_id}, сообщение='{user_message}'")
         docs = await retrieve_relevant_docs(user_message, user_id)
+        logger.info(f"📊 RAG: найдено документов: {len(docs)}")
+        
         if docs:
             context = "\n\n".join([doc["content"] for doc in docs])
             sources = [doc["metadata"].get("filename", "unknown") for doc in docs]
