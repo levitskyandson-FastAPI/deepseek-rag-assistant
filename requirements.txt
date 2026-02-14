@@ -10,3 +10,4 @@ tenacity
 PyPDF2
 python-multipart
 pydantic-settings
+tenacity
