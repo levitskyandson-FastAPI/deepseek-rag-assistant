@@ -11,7 +11,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from services.leads import save_lead
-from core.logger import logger  # добавили импорт logger
+from core.logger import logger  # импортируем логгер
 
 load_dotenv()
 
@@ -190,7 +190,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Управление стадиями с живыми инструкциями
+    # Управление стадиями
     system_extra = ""
 
     if session["stage"] == "initial":
