@@ -11,10 +11,12 @@ from core.logger import logger
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def get_embedding(text: str) -> List[float]:
-    """Получение эмбеддинга через DeepSeek API"""
+    """Получение эмбеддинга через DeepSeek API с логированием"""
+    url = f"{settings.deepseek_api_url}/embeddings"
+    logger.info(f"Requesting embeddings from {url} with model {settings.embedding_model}")
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            f"{settings.deepseek_api_url}/embeddings",
+            url,
             headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
             json={
                 "input": text,
