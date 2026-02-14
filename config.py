@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # DeepSeek
     deepseek_api_key: str = ""
     deepseek_api_url: str = "https://api.deepseek.com/v1"
-    
+    openai_api_key: str = ""
     # Supabase
     supabase_url: str = ""
     supabase_key: str = ""
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Модели
     embedding_model: str = "deepseek-embedding"
     chat_model: str = "deepseek-chat"
-    vector_dimension: int = 384
+    vector_dimension: int = 1536
     
     # Обработка документов
     chunk_size: int = 1000
