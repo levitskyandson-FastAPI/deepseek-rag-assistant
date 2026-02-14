@@ -28,15 +28,26 @@ async def ask_with_rag(
     context_info: Optional[str] = None
 ) -> Tuple[str, List[str]]:
     sources = []
-    
-    # Базовая системная инструкция
     base_system = "Ты — корпоративный ИИ-ассистент агентства Levitsky & Son AI Solutions."
 
-    # Если есть дополнительные инструкции, добавляем
-    extra = system_extra if system_extra else ""
+    # Парсим context_info
+    greeted = False
+    if context_info:
+        try:
+            ctx = json.loads(context_info)
+            greeted = ctx.get("greeted", False)
+        except:
+            pass
 
-    # Если есть информация о состоянии, добавляем
-    context = f"Текущий контекст диалога: {context_info}" if context_info else ""
+    # Добавляем инструкцию о приветствии
+    greeting_instruction = ""
+    if greeted:
+        greeting_instruction = "Не здоровайся повторно, просто продолжай диалог и отвечай на вопрос."
+    else:
+        greeting_instruction = "Ты начинаешь разговор, можешь поприветствовать клиента."
+
+    extra = system_extra if system_extra else ""
+    full_extra = f"{greeting_instruction}\n{extra}".strip()
 
     if use_rag:
         docs = await retrieve_relevant_docs(user_message, user_id)
@@ -45,8 +56,7 @@ async def ask_with_rag(
             context_docs = "\n\n".join([doc["content"] for doc in docs])
             sources = [doc["metadata"].get("filename", "unknown") for doc in docs]
             system_prompt = f"""{base_system}
-{extra}
-{context}
+{full_extra}
 
 Отвечай на вопросы, используя информацию из документов ниже. Если в документах нет ответа, скажи: «У меня нет информации».
 
@@ -54,13 +64,11 @@ async def ask_with_rag(
 {context_docs}"""
         else:
             system_prompt = f"""{base_system}
-{extra}
-{context}
+{full_extra}
 Если у тебя нет информации, честно скажи об этом."""
     else:
         system_prompt = f"""{base_system}
-{extra}
-{context}
+{full_extra}
 Ты — полезный ИИ-ассистент, отвечай дружелюбно."""
 
     messages = [
