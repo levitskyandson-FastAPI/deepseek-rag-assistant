@@ -20,21 +20,37 @@ USER_ID = "levitsky_agency"
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
-# Простые эвристики для извлечения имени и компании
+# ---------- Улучшенное извлечение имени ----------
 def extract_name(text):
-    # Ищем фразы типа "меня зовут Иван", "зовут Иван", "имя Иван"
+    print(f"[extract_name] Анализируем: '{text}'")
+    # Нормализация пробелов
+    text = re.sub(r'\s+', ' ', text).strip()
     patterns = [
-        r'(?:меня зовут|зовут|мое имя|имя)\s+([А-ЯЁ][а-яё]+)',
-        r'([А-ЯЁ][а-яё]+)\s+(?:на связи|на линии)',
+        # 1. "меня зовут Иван", "зовут Иван", "мое имя Иван", "имя Иван"
+        r'(?:меня\s+зовут|зовут|мое\s+имя|имя)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
+        # 2. "Иван на связи", "Иван на линии"
+        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s+(?:на\s+связи|на\s+линии)',
+        # 3. просто имя в начале сообщения (например, "Денис, ..." или "Денис")
+        r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)[,\s]',
+        # 4. если сообщение состоит только из имени (возможно, с отчеством)
+        r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)$',
+        # 5. имя перед тире или после тире (например, "Денис Левицкий — CEO")
+        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s*[—–-]',
+        r'[—–-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
+        # 6. последний шанс — любое слово с большой буквы (осторожно)
+        r'\b([А-ЯЁ][а-яё]+)\b'
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            return match.group(1)
+            name = match.group(1).strip()
+            print(f"[extract_name] НАЙДЕНО: '{name}' по шаблону {pattern}")
+            return name
+    print("[extract_name] Имя не найдено")
     return None
 
+# ---------- Извлечение компании ----------
 def extract_company(text):
-    # Ищем фразы типа "компания Рога и Копыта", "ООО Рога", "ИП Иванов"
     patterns = [
         r'(?:компания|фирма|организация|ооо|ип|зао|ао)\s+([А-ЯЁ][А-ЯЁа-яё\s]+?)(?:\s|\.|,|$|и)',
         r'([А-ЯЁ][А-ЯЁа-яё\s]{2,}?)\s+(?:компания|фирма)',
@@ -42,24 +58,31 @@ def extract_company(text):
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            return match.group(1).strip()
+            company = match.group(1).strip()
+            print(f"[extract_company] НАЙДЕНО: '{company}'")
+            return company
+    print("[extract_company] Не найдено")
     return None
 
+# ---------- Извлечение сферы ----------
 def extract_industry(text):
-    # Ищем сферу: "сфера продажи", "торговля", "логистика" и т.п.
     keywords = ['торговля', 'продажи', 'логистика', 'медицина', 'образование',
                 'строительство', 'производство', 'услуги', 'ритейл', 'e-commerce']
     for word in keywords:
         if word in text.lower():
+            print(f"[extract_industry] НАЙДЕНО ПО КЛЮЧЕВОМУ СЛОВУ: '{word}'")
             return word
-    # Можно также искать фразы типа "работаем в сфере..."
     match = re.search(r'(?:сфера|область|отрасль)\s+([а-яё\s]+?)(?:\s|\.|,|$)', text, re.IGNORECASE)
     if match:
-        return match.group(1).strip()
+        industry = match.group(1).strip()
+        print(f"[extract_industry] НАЙДЕНО ПО ФРАЗЕ: '{industry}'")
+        return industry
+    print("[extract_industry] Не найдено")
     return None
+# ------------------------------------------------
 
 user_sessions = defaultdict(lambda: {
-    "stage": "initial",        # initial, gathering_info, offering, completed
+    "stage": "initial",        # initial, gathering_info, collecting_pain, offer_consultation, completed
     "greeted": False,
     "collected": {}
 })
@@ -83,21 +106,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
-    # --- Попытка извлечь имя, компанию, сферу из сообщения ---
+    # --- Извлечение данных из сообщения ---
     extracted_name = extract_name(user_message)
     if extracted_name and not session["collected"].get("name"):
         session["collected"]["name"] = extracted_name
+        print(f"✅ Имя сохранено в сессии: {extracted_name}")
 
     extracted_company = extract_company(user_message)
     if extracted_company and not session["collected"].get("company"):
         session["collected"]["company"] = extracted_company
+        print(f"✅ Компания сохранена: {extracted_company}")
 
     extracted_industry = extract_industry(user_message)
     if extracted_industry and not session["collected"].get("industry"):
         session["collected"]["industry"] = extracted_industry
-    # --------------------------------------------------------
+        print(f"✅ Сфера сохранена: {extracted_industry}")
+    # ----------------------------------------
 
-    # Проверка на номер телефона (этот блок остаётся выше остальных)
+    # Проверка на номер телефона (этот блок должен быть до остальной обработки)
     phone_match = PHONE_REGEX.search(user_message)
     if phone_match and session["stage"] != "completed":
         phone = phone_match.group()
@@ -106,7 +132,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         industry = session["collected"].get("industry")
         pain = session["collected"].get("pain")
 
-        # Парсим дату и время
+        # Парсинг даты и времени
         preferred_date = None
         msg_lower = user_message.lower()
         if "сегодня" in msg_lower:
@@ -141,7 +167,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if preferred_date:
             session["collected"]["preferred_date"] = preferred_date
 
-        # Сохраняем лида в Supabase
+        # Сохраняем в Supabase
         try:
             await save_lead(
                 telegram_user_id=user_id,
@@ -154,7 +180,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 extra_data={"source": "telegram_bot", "stage": session["stage"]}
             )
         except Exception as e:
-            print(f"Ошибка сохранения лида: {e}")
+            print(f"❌ Ошибка сохранения лида: {e}")
 
         session["stage"] = "completed"
         reply = "Спасибо! Я передал ваш номер менеджеру. "
@@ -166,7 +192,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply)
         return
 
-    # Определяем, какие данные уже собраны, а какие нет
+    # Определяем, какие данные уже собраны
     collected = session["collected"]
     missing = []
     if not collected.get("name"):
@@ -176,64 +202,60 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not collected.get("industry"):
         missing.append("сфера деятельности")
 
-    # Формируем system_extra в зависимости от стадии и недостающих данных
+    # Формируем строку с уже известными данными для system_extra
+    known_info_parts = []
+    if collected.get("name"):
+        known_info_parts.append(f"имя: {collected['name']}")
+    if collected.get("company"):
+        known_info_parts.append(f"компания: {collected['company']}")
+    if collected.get("industry"):
+        known_info_parts.append(f"сфера: {collected['industry']}")
+    if collected.get("preferred_date"):
+        known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
+    known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
+
+    # Определяем стадию и формируем system_extra
     system_extra = ""
 
     if session["stage"] == "initial":
-        # Если есть недостающие данные, переходим в стадию сбора информации
         if missing:
             session["stage"] = "gathering_info"
-            # Будем собирать по одному, начнём с первого недостающего
             next_field = missing[0]
-            field_prompts = {
-                "имя": "Спроси у клиента его имя, если оно ещё не известно.",
-                "название компании": "Спроси название компании клиента.",
-                "сфера деятельности": "Спроси, в какой сфере работает компания клиента."
-            }
-            system_extra = field_prompts.get(next_field, "Задай уточняющий вопрос.")
+            if next_field == "имя":
+                system_extra = known_info_str + "Спроси у клиента его имя. Не давай никакой другой информации, не рассказывай о компании."
+            elif next_field == "название компании":
+                system_extra = known_info_str + "Спроси название компании клиента. Не давай справок."
+            elif next_field == "сфера деятельности":
+                system_extra = known_info_str + "Спроси, в какой сфере работает компания клиента. Не давай справок."
         else:
-            # Все данные уже есть, можно выяснять потребность
-            system_extra = (
-                "Ты — продающий консультант. Клиент предоставил все данные. "
-                "Теперь выясни его потребность (боль). Задавай открытые вопросы: "
-                "'Расскажите подробнее о вашей задаче?', 'С какими трудностями вы сталкиваетесь?'."
-            )
+            session["stage"] = "collecting_pain"
+            system_extra = known_info_str + "Все данные собраны. Теперь выясни потребность клиента (боль). Задавай открытые вопросы, не предлагай услуги."
+
     elif session["stage"] == "gathering_info":
         if missing:
-            # Спрашиваем по очереди
             next_field = missing[0]
-            field_prompts = {
-                "имя": "Если имя клиента всё ещё не известно, спроси его. Если уже известно, переходи к следующему пункту.",
-                "название компании": "Если название компании всё ещё не известно, спроси его. Если уже известно, переходи к следующему пункту.",
-                "сфера деятельности": "Если сфера деятельности всё ещё не известна, спроси её. Если уже известна, переходи к выяснению боли."
-            }
-            system_extra = field_prompts.get(next_field, "Задай уточняющий вопрос.")
-            # Если после ответа все данные собраны, перейдём к выяснению боли в следующем шаге
-            if not missing:  # если после обновления всё собрано
-                session["stage"] = "collecting_pain"
-                system_extra = "Все данные собраны. Теперь выясни потребность клиента (боль)."
+            if next_field == "имя":
+                system_extra = known_info_str + "Имя клиента всё ещё неизвестно. Спроси его. Не давай другой информации."
+            elif next_field == "название компании":
+                system_extra = known_info_str + "Название компании ещё неизвестно. Спроси его. Не рассказывай о себе."
+            elif next_field == "сфера деятельности":
+                system_extra = known_info_str + "Сфера деятельности ещё неизвестна. Спроси её. Не давай справок."
         else:
-            # Все данные собраны, переходим к сбору боли
             session["stage"] = "collecting_pain"
-            system_extra = "Все данные собраны. Теперь выясни потребность клиента (боль). Задай открытые вопросы."
+            system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
 
     elif session["stage"] == "collecting_pain":
-        # Если боль ещё не собрана (нет в collected), спрашиваем
         if not collected.get("pain"):
-            system_extra = "Выясни потребность клиента (боль). Задай открытые вопросы."
+            system_extra = known_info_str + "Выясни потребность клиента (боль). Задавай открытые вопросы. Не предлагай консультацию, пока не поймёшь проблему."
         else:
-            # Боль есть, переходим к предложению консультации
             session["stage"] = "offer_consultation"
-            system_extra = "Ты уже выяснил проблему клиента. Теперь нужно предложить бесплатную консультацию. Попроси его выбрать удобное время и оставить номер телефона."
+            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию, попроси выбрать удобное время и оставить номер телефона."
 
     elif session["stage"] == "offer_consultation":
-        system_extra = (
-            "Ты уже выяснил проблему клиента. Теперь нужно предложить бесплатную консультацию. "
-            "Попроси его выбрать удобное время и оставить номер телефона."
-        )
+        system_extra = known_info_str + "Предложи бесплатную консультацию. Попроси выбрать время и оставить номер телефона. Не задавай больше вопросов."
 
     elif session["stage"] == "completed":
-        system_extra = "Ответь на вопрос клиента максимально полезно, учитывая, что консультация уже назначена."
+        system_extra = known_info_str + "Ответь на вопрос клиента максимально полезно, используя известные данные. Не предлагай больше консультаций."
 
     # Формируем context_info
     context_info = {
@@ -241,6 +263,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "greeted": session.get("greeted", False),
         "collected": collected
     }
+
+    # Логируем то, что отправляем в API
+    print(f"➡️ Отправка в API: stage={session['stage']}, missing={missing}, known={known_info_parts}")
+    print(f"➡️ system_extra: {system_extra}")
 
     try:
         payload = {
@@ -258,11 +284,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         reply = f"❌ Ошибка: {e}"
 
-    # После ответа обновляем greeted
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если модель всё же предложила номер, а мы ещё не в offer_consultation, переводим
+    # Если модель предложила номер, а мы ещё не в offer_consultation, переводим
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
