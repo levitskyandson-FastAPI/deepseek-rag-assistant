@@ -39,7 +39,7 @@ async def ask_with_rag(
         except:
             pass
 
-    # Добавляем инструкцию о приветствии
+    # Инструкция о приветствии
     greeting_instruction = ""
     if greeted:
         greeting_instruction = "Не здоровайся повторно, просто продолжай диалог и отвечай на вопрос."

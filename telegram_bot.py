@@ -19,7 +19,7 @@ USER_ID = "levitsky_agency"
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
 user_sessions = defaultdict(lambda: {
-    "stage": "initial",
+    "stage": "initial",        # initial, offer_consultation, collecting_contact, completed
     "greeted": False,
     "collected": {}
 })
@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_sessions[user_id] = {
         "stage": "initial",
-        "greeted": True,  # сразу после /start считаем, что поздоровались
+        "greeted": True,
         "collected": {}
     }
     await update.message.reply_text(
@@ -48,36 +48,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if phone_match and session["stage"] != "completed":
         session["collected"]["phone"] = phone_match.group()
         session["stage"] = "completed"
-        # Здесь можно добавить вызов CRM
-        reply = "Спасибо! Я передал ваш номер менеджеру. Он свяжется с вами в ближайшее время."
+        # Здесь можно будет вызвать CRM
+        reply = "Спасибо! Я передал ваш номер менеджеру. Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
         session["greeted"] = True
         await update.message.reply_text(reply)
         return
 
-    # Формируем context_info для передачи
-    context_info = {
-        "stage": session["stage"],
-        "greeted": session["greeted"],
-        "collected": session["collected"]
-    }
-
-    # Определяем system_extra в зависимости от стадии
-    system_extra = ""
+    # Определяем стадию и system_extra
     if session["stage"] == "initial":
+        # Если пользователь прислал осмысленное сообщение (не короткое приветствие)
+        if len(user_message) > 10:
+            # Переводим в стадию предложения консультации
+            session["stage"] = "offer_consultation"
+            system_extra = (
+                "Ты уже выяснил потребность клиента (он описал свою проблему). "
+                "Теперь твоя задача — предложить ему бесплатную консультацию с нашим специалистом. "
+                "Попроси его выбрать удобное время (сегодня или завтра) и оставить номер телефона. "
+                "Не задавай больше уточняющих вопросов. Будь вежлив и конкретен."
+            )
+        else:
+            system_extra = (
+                "Ты — продающий консультант. Клиент только начал разговор. "
+                "Твоя задача — выяснить его потребность. Задавай открытые вопросы: "
+                "'Расскажите подробнее о вашей задаче?', 'С какими трудностями вы сталкиваетесь?'"
+            )
+    elif session["stage"] == "offer_consultation":
         system_extra = (
-            "Ты — продающий консультант. Клиент только начал разговор. "
-            "Твоя задача — выяснить его потребность. Задавай открытые вопросы: "
-            "'Расскажите подробнее о вашей задаче?', 'С какими трудностями вы сталкиваетесь?'"
-        )
-    elif session["stage"] == "clarifying":
-        system_extra = (
-            "Ты уже немного поговорил с клиентом. Если он проявляет явный интерес (цены, сроки, примеры), "
-            "предложи: 'Если хотите обсудить детали подробнее, наш специалист может перезвонить вам. Оставьте номер телефона.'"
+            "Ты уже выяснил проблему клиента. Теперь нужно предложить бесплатную консультацию. "
+            "Попроси его выбрать удобное время и оставить номер телефона. "
+            "Например: 'Для более точного расчёта и демонстрации возможностей я предлагаю вам бесплатную консультацию с нашим техническим специалистом. Выберите, пожалуйста, удобное время для звонка (сегодня или завтра) и оставьте ваш номер телефона.'"
         )
     elif session["stage"] == "collecting_contact":
-        system_extra = "Клиент согласился на консультацию. Вежливо попроси оставить номер телефона."
+        system_extra = "Клиент согласился на консультацию. Вежливо попроси оставить номер телефона, если он ещё не оставил."
     else:
         system_extra = "Ответь на вопрос клиента максимально полезно."
+
+    # Формируем context_info
+    context_info = {
+        "stage": session["stage"],
+        "greeted": session.get("greeted", False),
+        "collected": session["collected"]
+    }
 
     try:
         payload = {
@@ -95,14 +106,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         reply = f"❌ Ошибка: {e}"
 
-    # Обновляем состояние на основе ответа бота
-    if "оставьте ваш номер" in reply and session["stage"] == "initial":
-        session["stage"] = "clarifying"
-    if "менеджер свяжется" in reply:
-        session["stage"] = "completed"
-    # После первого ответа бота считаем, что диалог идёт, greeted больше не нужно
+    # После первого ответа помечаем, что поздоровались
     if not session["greeted"]:
         session["greeted"] = True
+
+    # Если в ответе есть просьба оставить номер, но мы ещё не в collecting_contact,
+    # то переводим в collecting_contact (на случай, если модель сама предложила)
+    if "оставьте ваш номер" in reply and session["stage"] not in ("collecting_contact", "completed"):
+        session["stage"] = "collecting_contact"
 
     await update.message.reply_text(reply)
 
