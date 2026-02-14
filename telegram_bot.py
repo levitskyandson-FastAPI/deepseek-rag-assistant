@@ -20,7 +20,6 @@ USER_ID = "levitsky_agency"
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
-# Словарь для хранения сессий пользователей
 user_sessions = defaultdict(lambda: {
     "stage": "initial",        # initial, clarifying, offer_consultation, collecting_contact, completed
     "greeted": False,
@@ -53,13 +52,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = session["collected"].get("name")
         pain = session["collected"].get("pain")
 
-        # Сохраняем лида в Supabase
+        # --- НОВЫЙ БЛОК: извлечение даты и времени ---
+        preferred_date = None
+        msg_lower = user_message.lower()
+        if "сегодня" in msg_lower:
+            preferred_date = "сегодня"
+        elif "завтра" in msg_lower:
+            preferred_date = "завтра"
+        elif "послезавтра" in msg_lower:
+            preferred_date = "послезавтра"
+
+        # Ищем время в формате ЧЧ:ММ, ЧЧ-ММ, ЧЧ.ММ
+        time_match = re.search(r'(\d{1,2})[:–-.](\d{2})', user_message)
+        if not time_match:
+            # Ищем просто час после предлога "в"
+            time_match = re.search(r'в\s+(\d{1,2})(?:\s|$)', user_message)
+        if time_match:
+            hour = time_match.group(1)
+            minute = time_match.group(2) if len(time_match.groups()) > 1 else "00"
+            time_str = f"{hour}:{minute}"
+            if preferred_date:
+                preferred_date = f"{preferred_date} в {time_str}"
+            else:
+                preferred_date = time_str
+        # --------------------------------------------
+
+        # Сохраняем лида
         try:
             await save_lead(
                 telegram_user_id=user_id,
                 name=name,
                 phone=phone,
                 pain=pain,
+                preferred_date=preferred_date,
                 extra_data={"source": "telegram_bot", "stage": session["stage"]}
             )
         except Exception as e:
@@ -67,7 +92,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         session["collected"]["phone"] = phone
         session["stage"] = "completed"
-        reply = "Спасибо! Я передал ваш номер менеджеру. Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
+
+        # Персонализированный ответ
+        reply = "Спасибо! Я передал ваш номер менеджеру. "
+        if preferred_date:
+            reply += f"Вы выбрали {preferred_date}. "
+        reply += "Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
+
         session["greeted"] = True
         await update.message.reply_text(reply)
         return
@@ -75,27 +106,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Определяем стадию и системные инструкции
     system_extra = ""
     if session["stage"] == "initial":
-        # Начальная стадия – выясняем потребность
         system_extra = (
             "Ты — продающий консультант. Клиент только начал разговор. "
             "Твоя задача — выяснить его потребность (боль). Задавай открытые вопросы: "
             "'Расскажите подробнее о вашей задаче?', 'С какими трудностями вы сталкиваетесь?'. "
             "Не предлагай консультацию сразу. Не задавай слишком много вопросов подряд."
         )
-        # После получения развёрнутого ответа (больше 20 символов) переходим в clarifying
         if len(user_message) > 20:
             session["stage"] = "clarifying"
-            # Сохраняем первое описание как боль
             session["collected"]["pain"] = user_message
 
     elif session["stage"] == "clarifying":
-        # Уточняем детали, но не больше 1-2 вопросов
         system_extra = (
             "Ты уже получил общее описание проблемы. Теперь задай 1-2 уточняющих вопроса, "
             "чтобы лучше понять ситуацию (например, объём заявок, текущие проблемы). "
             "После ответа клиента (или если ответ короткий) переходи к предложению бесплатной консультации."
         )
-        # После ответа пользователя (любого) переходим к предложению консультации
         session["stage"] = "offer_consultation"
 
     elif session["stage"] == "offer_consultation":
@@ -111,7 +137,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         system_extra = "Ответь на вопрос клиента максимально полезно."
 
-    # Формируем context_info для передачи в API
+    # Формируем context_info
     context_info = {
         "stage": session["stage"],
         "greeted": session.get("greeted", False),
@@ -134,11 +160,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         reply = f"❌ Ошибка: {e}"
 
-    # После первого ответа помечаем, что поздоровались
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если в ответе есть просьба оставить номер, переводим в collecting_contact (если ещё не там)
     if "оставьте ваш номер" in reply and session["stage"] not in ("collecting_contact", "completed"):
         session["stage"] = "collecting_contact"
 
