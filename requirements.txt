@@ -13,3 +13,4 @@ pydantic-settings
 tenacity
 sentence-transformers
 torch  # нужен для работы sentence-transformers
+openai
