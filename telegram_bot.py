@@ -58,11 +58,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = data.get("reply", "⚠️ Не удалось получить ответ.")
         sources = data.get("sources", [])
 
-        # Если есть источники, можно добавить их в ответ (опционально)
-        if sources:
-            sources_text = "\n\n📄 *Источники:*\n" + "\n".join(f"- {s}" for s in sources)
-            reply += sources_text
-
         await update.message.reply_text(reply)
 
     except requests.exceptions.Timeout:

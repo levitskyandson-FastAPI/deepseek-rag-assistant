@@ -10,7 +10,6 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     reply: str
-    sources: List[str] = Field(default_factory=list)
 
 # ---------- Documents ----------
 class DocumentUploadResponse(BaseModel):
