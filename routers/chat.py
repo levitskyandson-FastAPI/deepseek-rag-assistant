@@ -11,7 +11,9 @@ async def chat_endpoint(request: ChatRequest):
         reply, sources = await ask_with_rag(
             user_message=request.message,
             user_id=request.user_id,
-            use_rag=request.use_rag
+            use_rag=request.use_rag,
+            system_extra=request.system_extra,
+            context_info=request.context_info
         )
         return ChatResponse(reply=reply, sources=sources)
     except Exception as e:
