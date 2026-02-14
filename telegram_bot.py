@@ -20,36 +20,27 @@ USER_ID = "levitsky_agency"
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
-# ---------- Улучшенное извлечение имени ----------
+# ---------- Извлечение данных ----------
 def extract_name(text):
     print(f"[extract_name] Анализируем: '{text}'")
-    # Нормализация пробелов
     text = re.sub(r'\s+', ' ', text).strip()
     patterns = [
-        # 1. "меня зовут Иван", "зовут Иван", "мое имя Иван", "имя Иван"
-        r'(?:меня\s+зовут|зовут|мое\s+имя|имя)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
-        # 2. "Иван на связи", "Иван на линии"
-        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s+(?:на\s+связи|на\s+линии)',
-        # 3. просто имя в начале сообщения (например, "Денис, ..." или "Денис")
+        r'(?:меня зовут|зовут|мое имя|имя)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
+        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s+(?:на связи|на линии)',
         r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)[,\s]',
-        # 4. если сообщение состоит только из имени (возможно, с отчеством)
         r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)$',
-        # 5. имя перед тире или после тире (например, "Денис Левицкий — CEO")
         r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s*[—–-]',
         r'[—–-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
-        # 6. последний шанс — любое слово с большой буквы (осторожно)
         r'\b([А-ЯЁ][а-яё]+)\b'
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             name = match.group(1).strip()
-            print(f"[extract_name] НАЙДЕНО: '{name}' по шаблону {pattern}")
+            print(f"[extract_name] НАЙДЕНО: '{name}'")
             return name
-    print("[extract_name] Имя не найдено")
     return None
 
-# ---------- Извлечение компании ----------
 def extract_company(text):
     patterns = [
         r'(?:компания|фирма|организация|ооо|ип|зао|ао)\s+([А-ЯЁ][А-ЯЁа-яё\s]+?)(?:\s|\.|,|$|и)',
@@ -61,23 +52,20 @@ def extract_company(text):
             company = match.group(1).strip()
             print(f"[extract_company] НАЙДЕНО: '{company}'")
             return company
-    print("[extract_company] Не найдено")
     return None
 
-# ---------- Извлечение сферы ----------
 def extract_industry(text):
     keywords = ['торговля', 'продажи', 'логистика', 'медицина', 'образование',
                 'строительство', 'производство', 'услуги', 'ритейл', 'e-commerce']
     for word in keywords:
         if word in text.lower():
-            print(f"[extract_industry] НАЙДЕНО ПО КЛЮЧЕВОМУ СЛОВУ: '{word}'")
+            print(f"[extract_industry] НАЙДЕНО: '{word}'")
             return word
     match = re.search(r'(?:сфера|область|отрасль)\s+([а-яё\s]+?)(?:\s|\.|,|$)', text, re.IGNORECASE)
     if match:
         industry = match.group(1).strip()
-        print(f"[extract_industry] НАЙДЕНО ПО ФРАЗЕ: '{industry}'")
+        print(f"[extract_industry] НАЙДЕНО: '{industry}'")
         return industry
-    print("[extract_industry] Не найдено")
     return None
 # ------------------------------------------------
 
@@ -106,11 +94,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
-    # --- Извлечение данных из сообщения ---
+    # --- Извлечение данных ---
     extracted_name = extract_name(user_message)
     if extracted_name and not session["collected"].get("name"):
         session["collected"]["name"] = extracted_name
-        print(f"✅ Имя сохранено в сессии: {extracted_name}")
+        print(f"✅ Имя сохранено: {extracted_name}")
 
     extracted_company = extract_company(user_message)
     if extracted_company and not session["collected"].get("company"):
@@ -121,9 +109,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if extracted_industry and not session["collected"].get("industry"):
         session["collected"]["industry"] = extracted_industry
         print(f"✅ Сфера сохранена: {extracted_industry}")
-    # ----------------------------------------
+    # -------------------------
 
-    # Проверка на номер телефона (этот блок должен быть до остальной обработки)
+    # Проверка номера телефона (приоритетно)
     phone_match = PHONE_REGEX.search(user_message)
     if phone_match and session["stage"] != "completed":
         phone = phone_match.group()
@@ -156,16 +144,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Сохраняем в сессию
         session["collected"]["phone"] = phone
-        if name:
-            session["collected"]["name"] = name
-        if company:
-            session["collected"]["company"] = company
-        if industry:
-            session["collected"]["industry"] = industry
-        if pain:
-            session["collected"]["pain"] = pain
-        if preferred_date:
-            session["collected"]["preferred_date"] = preferred_date
+        if name: session["collected"]["name"] = name
+        if company: session["collected"]["company"] = company
+        if industry: session["collected"]["industry"] = industry
+        if pain: session["collected"]["pain"] = pain
+        if preferred_date: session["collected"]["preferred_date"] = preferred_date
 
         # Сохраняем в Supabase
         try:
@@ -192,7 +175,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply)
         return
 
-    # Определяем, какие данные уже собраны
+    # Определяем недостающие поля
     collected = session["collected"]
     missing = []
     if not collected.get("name"):
@@ -202,19 +185,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not collected.get("industry"):
         missing.append("сфера деятельности")
 
-    # Формируем строку с уже известными данными для system_extra
+    # Формируем строку известных данных
     known_info_parts = []
-    if collected.get("name"):
-        known_info_parts.append(f"имя: {collected['name']}")
-    if collected.get("company"):
-        known_info_parts.append(f"компания: {collected['company']}")
-    if collected.get("industry"):
-        known_info_parts.append(f"сфера: {collected['industry']}")
-    if collected.get("preferred_date"):
-        known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
+    if collected.get("name"): known_info_parts.append(f"имя: {collected['name']}")
+    if collected.get("company"): known_info_parts.append(f"компания: {collected['company']}")
+    if collected.get("industry"): known_info_parts.append(f"сфера: {collected['industry']}")
+    if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Определяем стадию и формируем system_extra
+    # Управление стадиями с максимально строгими инструкциями
     system_extra = ""
 
     if session["stage"] == "initial":
@@ -222,40 +201,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             session["stage"] = "gathering_info"
             next_field = missing[0]
             if next_field == "имя":
-                system_extra = known_info_str + "Спроси у клиента его имя. Не давай никакой другой информации, не рассказывай о компании."
+                system_extra = "Твоя задача: задать только один вопрос — спросить имя клиента. Не пиши ничего лишнего, не представляйся, не рассказывай о компании. Твой ответ должен состоять только из вопроса об имени."
             elif next_field == "название компании":
-                system_extra = known_info_str + "Спроси название компании клиента. Не давай справок."
+                system_extra = "Твоя задача: задать только один вопрос — спросить название компании клиента. Не пиши ничего лишнего."
             elif next_field == "сфера деятельности":
-                system_extra = known_info_str + "Спроси, в какой сфере работает компания клиента. Не давай справок."
+                system_extra = "Твоя задача: задать только один вопрос — спросить сферу деятельности компании. Не пиши ничего лишнего."
         else:
             session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные собраны. Теперь выясни потребность клиента (боль). Задавай открытые вопросы, не предлагай услуги."
+            system_extra = known_info_str + "Твоя задача: задать открытый вопрос о проблеме клиента (боли). Например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?' Не добавляй никакой другой информации."
 
     elif session["stage"] == "gathering_info":
         if missing:
             next_field = missing[0]
             if next_field == "имя":
-                system_extra = known_info_str + "Имя клиента всё ещё неизвестно. Спроси его. Не давай другой информации."
+                system_extra = "Твоя задача: спросить имя клиента. Не пиши ничего, кроме вопроса."
             elif next_field == "название компании":
-                system_extra = known_info_str + "Название компании ещё неизвестно. Спроси его. Не рассказывай о себе."
+                system_extra = "Твоя задача: спросить название компании. Не пиши ничего, кроме вопроса."
             elif next_field == "сфера деятельности":
-                system_extra = known_info_str + "Сфера деятельности ещё неизвестна. Спроси её. Не давай справок."
+                system_extra = "Твоя задача: спросить сферу деятельности. Не пиши ничего, кроме вопроса."
         else:
             session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
+            system_extra = known_info_str + "Твоя задача: спросить о проблеме клиента. Не добавляй лишнего."
 
     elif session["stage"] == "collecting_pain":
         if not collected.get("pain"):
-            system_extra = known_info_str + "Выясни потребность клиента (боль). Задавай открытые вопросы. Не предлагай консультацию, пока не поймёшь проблему."
+            system_extra = known_info_str + "Твоя задача: спросить о проблеме клиента (боль). Не предлагай консультацию, не рассказывай о компании. Просто задай вопрос."
         else:
             session["stage"] = "offer_consultation"
-            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию, попроси выбрать удобное время и оставить номер телефона."
+            system_extra = known_info_str + "Твоя задача: предложить бесплатную консультацию и попросить номер телефона и удобное время. Например: 'Для более точного расчёта предлагаю бесплатную консультацию с нашим специалистом. Выберите, пожалуйста, удобное время для звонка и оставьте ваш номер телефона.' Не задавай других вопросов."
 
     elif session["stage"] == "offer_consultation":
-        system_extra = known_info_str + "Предложи бесплатную консультацию. Попроси выбрать время и оставить номер телефона. Не задавай больше вопросов."
+        system_extra = known_info_str + "Твоя задача: предложить консультацию и попросить номер телефона и время. Не пиши ничего другого."
 
     elif session["stage"] == "completed":
-        system_extra = known_info_str + "Ответь на вопрос клиента максимально полезно, используя известные данные. Не предлагай больше консультаций."
+        system_extra = known_info_str + "Твоя задача: отвечать на вопросы клиента, используя известные данные. Если вопрос не по теме, скажи, что можешь помочь только по услугам компании. Не предлагай больше консультаций."
 
     # Формируем context_info
     context_info = {
@@ -264,8 +243,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "collected": collected
     }
 
-    # Логируем то, что отправляем в API
-    print(f"➡️ Отправка в API: stage={session['stage']}, missing={missing}, known={known_info_parts}")
+    print(f"➡️ stage={session['stage']}, missing={missing}, known={known_info_parts}")
     print(f"➡️ system_extra: {system_extra}")
 
     try:
@@ -287,7 +265,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если модель предложила номер, а мы ещё не в offer_consultation, переводим
+    # Если модель сама предложила номер, переводим стадию
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
