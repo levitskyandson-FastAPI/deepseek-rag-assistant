@@ -10,6 +10,9 @@ from collections import defaultdict
 import nest_asyncio
 nest_asyncio.apply()
 
+# Импорт для сохранения лидов
+from services.leads import save_lead
+
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -46,9 +49,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Проверка на номер телефона
     phone_match = PHONE_REGEX.search(user_message)
     if phone_match and session["stage"] != "completed":
-        session["collected"]["phone"] = phone_match.group()
+        phone = phone_match.group()
+        name = session["collected"].get("name")
+        pain = session["collected"].get("pain")
+
+        # Сохраняем лида в Supabase
+        try:
+            await save_lead(
+                telegram_user_id=user_id,
+                name=name,
+                phone=phone,
+                pain=pain,
+                extra_data={"source": "telegram_bot", "stage": session["stage"]}
+            )
+        except Exception as e:
+            # Логируем ошибку, но отвечаем пользователю, что всё хорошо
+            print(f"Ошибка сохранения лида: {e}")
+
+        session["collected"]["phone"] = phone
         session["stage"] = "completed"
-        # Здесь можно будет вызвать CRM
         reply = "Спасибо! Я передал ваш номер менеджеру. Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
         session["greeted"] = True
         await update.message.reply_text(reply)
