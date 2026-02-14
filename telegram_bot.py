@@ -1,28 +1,23 @@
 import os
 import asyncio
+import requests
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-import requests
+
+# Разрешаем вложенные циклы событий (для совместимости с некоторыми средами)
 import nest_asyncio
 nest_asyncio.apply()
 
 load_dotenv()
 
-# Токены и ключи
+# Токен бота из переменных окружения
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
+# URL вашего FastAPI-сервиса (Web Service)
+API_URL = "https://deepseek-rag-assistant-1-ldph.onrender.com/chat/"
 
-# Системный промпт для твоего агентства
-SYSTEM_PROMPT = """
-Ты — официальный ИИ-ассистент агентства Levitsky & Son AI Solutions.
-Мы создаем корпоративных ИИ-помощников для бизнеса на базе DeepSeek.
-Твоя задача — вежливо и профессионально отвечать на вопросы клиентов о наших услугах.
-Если не знаешь ответа — честно скажи, что уточнишь у специалиста.
-Отвечай на том же языке, на котором к тебе обратились (русский/английский).
-Будь дружелюбным, но деловым.
-"""
+# Фиксированный user_id, под которым загружены документы
+USER_ID = "levitsky_agency"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Ответ на команду /start"""
@@ -34,64 +29,65 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка сообщений пользователя через DeepSeek"""
+    """Обработка текстовых сообщений – отправка запроса к FastAPI с RAG"""
     user_message = update.message.text
     user_name = update.message.from_user.first_name
-    
-    # Показываем "печатает..."
+
+    # Показываем индикатор "печатает..."
     await context.bot.send_chat_action(
-        chat_id=update.effective_chat.id, 
+        chat_id=update.effective_chat.id,
         action="typing"
     )
-    
+
     try:
-        # Запрос к DeepSeek API
-        headers = {
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        
+        # Формируем запрос к API
         payload = {
-            "model": "deepseek-chat",
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 1000
+            "user_id": USER_ID,           # фиксированный ID для теста
+            "message": user_message,
+            "use_rag": True                # обязательно включаем RAG
         }
-        
-        response = requests.post(DEEPSEEK_URL, headers=headers, json=payload, timeout=30)
+        headers = {"Content-Type": "application/json"}
+
+        # Логируем отправляемый запрос (для отладки)
+        print(f"➡️ Отправка запроса к API: {payload}")
+
+        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
-        
-        ai_response = response.json()["choices"][0]["message"]["content"]
-        
-        # Отправляем ответ в Telegram
-        await update.message.reply_text(ai_response)
-        
+
+        data = response.json()
+        reply = data.get("reply", "⚠️ Не удалось получить ответ.")
+        sources = data.get("sources", [])
+
+        # Если есть источники, можно добавить их в ответ (опционально)
+        if sources:
+            sources_text = "\n\n📄 *Источники:*\n" + "\n".join(f"- {s}" for s in sources)
+            reply += sources_text
+
+        await update.message.reply_text(reply)
+
+    except requests.exceptions.Timeout:
+        await update.message.reply_text("⏳ Сервер не отвечает. Попробуйте позже.")
+    except requests.exceptions.RequestException as e:
+        error_msg = f"❌ Ошибка при обращении к серверу: {str(e)}"
+        print(error_msg)
+        await update.message.reply_text(error_msg)
     except Exception as e:
-        error_msg = f"❌ Произошла ошибка при обращении к ИИ: {str(e)}"
+        error_msg = f"❌ Неизвестная ошибка: {str(e)}"
+        print(error_msg)
         await update.message.reply_text(error_msg)
 
-async def main():
+def main():
     """Запуск бота"""
+    # Создаём приложение
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-    
+
+    # Добавляем обработчики
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
+
     print("🤖 Telegram Bot запущен и готов к работе!")
-    await app.run_polling()
+    # Запускаем поллинг (блокирующий вызов)
+    app.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
-import datetime
-
-LOG_FILE = "bot_requests.log"
-
-def log_interaction(user_id, user_name, user_message, ai_response):
-    with open(LOG_FILE, "a", encoding="utf-8") as f:
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        f.write(f"\n[{timestamp}] USER {user_id} ({user_name}): {user_message}\n")
-        f.write(f"[{timestamp}] BOT: {ai_response}\n")
-        f.write("-" * 80 + "\n")
+    main()
