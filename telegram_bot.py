@@ -52,7 +52,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         name = session["collected"].get("name")
         pain = session["collected"].get("pain")
 
-        # --- НОВЫЙ БЛОК: извлечение даты и времени ---
+        # --- Парсинг даты и времени ---
         preferred_date = None
         msg_lower = user_message.lower()
         if "сегодня" in msg_lower:
@@ -62,10 +62,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif "послезавтра" in msg_lower:
             preferred_date = "послезавтра"
 
-        # Ищем время в формате ЧЧ:ММ, ЧЧ-ММ, ЧЧ.ММ
         time_match = re.search(r'(\d{1,2})[:–-.](\d{2})', user_message)
         if not time_match:
-            # Ищем просто час после предлога "в"
             time_match = re.search(r'в\s+(\d{1,2})(?:\s|$)', user_message)
         if time_match:
             hour = time_match.group(1)
@@ -75,9 +73,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 preferred_date = f"{preferred_date} в {time_str}"
             else:
                 preferred_date = time_str
-        # --------------------------------------------
+        # --- Конец парсинга ---
 
-        # Сохраняем лида
+        # Сохраняем данные в сессию
+        session["collected"]["phone"] = phone
+        if name:
+            session["collected"]["name"] = name
+        if pain:
+            session["collected"]["pain"] = pain
+        if preferred_date:
+            session["collected"]["preferred_date"] = preferred_date
+
+        # Сохраняем лида в Supabase
         try:
             await save_lead(
                 telegram_user_id=user_id,
@@ -90,9 +97,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print(f"Ошибка сохранения лида: {e}")
 
-        session["collected"]["phone"] = phone
         session["stage"] = "completed"
-
         # Персонализированный ответ
         reply = "Спасибо! Я передал ваш номер менеджеру. "
         if preferred_date:
