@@ -11,6 +11,7 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from services.leads import save_lead
+from core.logger import logger  # добавили импорт logger
 
 load_dotenv()
 
@@ -89,14 +90,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     extracted_name = extract_name(user_message)
     if extracted_name and not session["collected"].get("name"):
         session["collected"]["name"] = extracted_name
+        logger.info(f"✅ Имя извлечено: {extracted_name}")
 
     extracted_company = extract_company(user_message)
     if extracted_company and not session["collected"].get("company"):
         session["collected"]["company"] = extracted_company
+        logger.info(f"✅ Компания извлечена: {extracted_company}")
 
     extracted_industry = extract_industry(user_message)
     if extracted_industry and not session["collected"].get("industry"):
         session["collected"]["industry"] = extracted_industry
+        logger.info(f"✅ Сфера извлечена: {extracted_industry}")
     # -------------------------
 
     # Проверка номера телефона
@@ -138,6 +142,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if pain: session["collected"]["pain"] = pain
         if preferred_date: session["collected"]["preferred_date"] = preferred_date
 
+        # Логируем перед вызовом save_lead
+        logger.info(f"💾 Попытка сохранить лида: phone={phone}, name={name}, company={company}")
+        logger.info(f"Calling save_lead with phone={phone}")
+
         # Сохраняем в Supabase
         try:
             await save_lead(
@@ -150,8 +158,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 preferred_date=preferred_date,
                 extra_data={"source": "telegram_bot", "stage": session["stage"]}
             )
+            logger.info("✅ save_lead выполнен успешно")
         except Exception as e:
-            print(f"Ошибка сохранения лида: {e}")
+            logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
 
         session["stage"] = "completed"
         reply = "Спасибо! Я передал ваш номер менеджеру. "
@@ -230,8 +239,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "collected": collected
     }
 
-    print(f"stage={session['stage']}, missing={missing}, known={known_info_parts}")
-    print(f"system_extra: {system_extra}")
+    logger.info(f"stage={session['stage']}, missing={missing}, known={known_info_parts}")
+    logger.info(f"system_extra: {system_extra}")
 
     try:
         payload = {
@@ -247,12 +256,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = response.json()
         reply = data.get("reply", "⚠️ Не удалось получить ответ.")
     except Exception as e:
+        logger.error(f"Ошибка вызова API: {e}", exc_info=True)
         reply = f"❌ Ошибка: {e}"
 
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если модель сама предложила номер, переводим стадию (но не агрессивно)
+    # Если модель сама предложила номер, переводим стадию
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
