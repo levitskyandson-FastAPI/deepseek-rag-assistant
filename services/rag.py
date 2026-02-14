@@ -7,7 +7,7 @@ async def retrieve_relevant_docs(
     query: str,
     user_id: Optional[str] = None,
     top_k: int = 5,
-    threshold: float = 0.7
+    threshold: float = 0.1
 ) -> List[Dict[str, Any]]:
     """
     Поиск релевантных документов по векторной близости.
