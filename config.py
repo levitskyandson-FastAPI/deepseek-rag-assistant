@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Модели
     embedding_model: str = "deepseek-embedding"
     chat_model: str = "deepseek-chat"
-    vector_dimension: int = 1024
+    vector_dimension: int = 384
     
     # Обработка документов
     chunk_size: int = 1000

@@ -1,34 +1,39 @@
 import httpx
 import asyncio
 import PyPDF2
+import random
 from io import BytesIO
 from typing import List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_exponential
+from sentence_transformers import SentenceTransformer
+import numpy as np
 
 from config import settings
 from services.supabase import supabase
 from core.logger import logger
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+# Глобальная переменная для модели (загружается один раз при первом вызове)
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        logger.info("Loading sentence-transformers model: all-MiniLM-L6-v2")
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        logger.info("Model loaded successfully")
+    return _model
+
 async def get_embedding(text: str) -> List[float]:
-    """Получение эмбеддинга через DeepSeek API с логированием"""
-    url = f"{settings.deepseek_api_url}/embeddings"
-    logger.info(f"Requesting embeddings from {url} with model {settings.embedding_model}")
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.post(
-            url,
-            headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
-            json={
-                "input": text,
-                "model": settings.embedding_model
-            }
-        )
+    """Получение эмбеддинга через локальную sentence-transformers модель"""
     try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"DeepSeek API error: статус {e.response.status_code}, тело: {e.response.text}")
+        model = get_model()
+        # Выполняем encode в отдельном потоке, чтобы не блокировать asyncio
+        loop = asyncio.get_event_loop()
+        embedding = await loop.run_in_executor(None, lambda: model.encode(text).tolist())
+        return embedding
+    except Exception as e:
+        logger.error(f"Error generating embedding: {e}", exc_info=True)
         raise
-    return resp.json()["data"][0]["embedding"]
 
 def split_text(text: str, chunk_size: int = None, overlap: int = None) -> List[str]:
     """Разделение текста на чанки с перекрытием"""
