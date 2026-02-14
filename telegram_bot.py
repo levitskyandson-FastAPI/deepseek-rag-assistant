@@ -22,7 +22,6 @@ PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
 # ---------- Извлечение данных ----------
 def extract_name(text):
-    print(f"[extract_name] Анализируем: '{text}'")
     text = re.sub(r'\s+', ' ', text).strip()
     patterns = [
         r'(?:меня зовут|зовут|мое имя|имя)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
@@ -31,14 +30,11 @@ def extract_name(text):
         r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)$',
         r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s*[—–-]',
         r'[—–-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
-        r'\b([А-ЯЁ][а-яё]+)\b'
     ]
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            name = match.group(1).strip()
-            print(f"[extract_name] НАЙДЕНО: '{name}'")
-            return name
+            return match.group(1).strip()
     return None
 
 def extract_company(text):
@@ -49,9 +45,7 @@ def extract_company(text):
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            company = match.group(1).strip()
-            print(f"[extract_company] НАЙДЕНО: '{company}'")
-            return company
+            return match.group(1).strip()
     return None
 
 def extract_industry(text):
@@ -59,18 +53,15 @@ def extract_industry(text):
                 'строительство', 'производство', 'услуги', 'ритейл', 'e-commerce']
     for word in keywords:
         if word in text.lower():
-            print(f"[extract_industry] НАЙДЕНО: '{word}'")
             return word
     match = re.search(r'(?:сфера|область|отрасль)\s+([а-яё\s]+?)(?:\s|\.|,|$)', text, re.IGNORECASE)
     if match:
-        industry = match.group(1).strip()
-        print(f"[extract_industry] НАЙДЕНО: '{industry}'")
-        return industry
+        return match.group(1).strip()
     return None
 # ------------------------------------------------
 
 user_sessions = defaultdict(lambda: {
-    "stage": "initial",        # initial, gathering_info, collecting_pain, offer_consultation, completed
+    "stage": "initial",
     "greeted": False,
     "collected": {}
 })
@@ -98,20 +89,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     extracted_name = extract_name(user_message)
     if extracted_name and not session["collected"].get("name"):
         session["collected"]["name"] = extracted_name
-        print(f"✅ Имя сохранено: {extracted_name}")
 
     extracted_company = extract_company(user_message)
     if extracted_company and not session["collected"].get("company"):
         session["collected"]["company"] = extracted_company
-        print(f"✅ Компания сохранена: {extracted_company}")
 
     extracted_industry = extract_industry(user_message)
     if extracted_industry and not session["collected"].get("industry"):
         session["collected"]["industry"] = extracted_industry
-        print(f"✅ Сфера сохранена: {extracted_industry}")
     # -------------------------
 
-    # Проверка номера телефона (приоритетно)
+    # Проверка номера телефона
     phone_match = PHONE_REGEX.search(user_message)
     if phone_match and session["stage"] != "completed":
         phone = phone_match.group()
@@ -163,7 +151,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 extra_data={"source": "telegram_bot", "stage": session["stage"]}
             )
         except Exception as e:
-            print(f"❌ Ошибка сохранения лида: {e}")
+            print(f"Ошибка сохранения лида: {e}")
 
         session["stage"] = "completed"
         reply = "Спасибо! Я передал ваш номер менеджеру. "
@@ -193,48 +181,47 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Управление стадиями с максимально строгими инструкциями
+    # Управление стадиями с живыми инструкциями
     system_extra = ""
 
     if session["stage"] == "initial":
         if missing:
             session["stage"] = "gathering_info"
-            next_field = missing[0]
-            if next_field == "имя":
-                system_extra = "Твоя задача: задать только один вопрос — спросить имя клиента. Не пиши ничего лишнего, не представляйся, не рассказывай о компании. Твой ответ должен состоять только из вопроса об имени."
-            elif next_field == "название компании":
-                system_extra = "Твоя задача: задать только один вопрос — спросить название компании клиента. Не пиши ничего лишнего."
-            elif next_field == "сфера деятельности":
-                system_extra = "Твоя задача: задать только один вопрос — спросить сферу деятельности компании. Не пиши ничего лишнего."
+            if not collected.get("name"):
+                system_extra = "Представься и спроси имя клиента. Ты можешь кратко поприветствовать, но главное – узнать имя."
+            elif not collected.get("company"):
+                system_extra = "Ты уже знаешь имя клиента. Теперь вежливо спроси название его компании."
+            elif not collected.get("industry"):
+                system_extra = "Узнай, в какой сфере работает компания клиента."
         else:
             session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Твоя задача: задать открытый вопрос о проблеме клиента (боли). Например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?' Не добавляй никакой другой информации."
+            system_extra = known_info_str + "Все данные о клиенте собраны. Теперь выясни его потребность (боль). Задай открытый вопрос, например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?'"
 
     elif session["stage"] == "gathering_info":
         if missing:
             next_field = missing[0]
             if next_field == "имя":
-                system_extra = "Твоя задача: спросить имя клиента. Не пиши ничего, кроме вопроса."
+                system_extra = known_info_str + "Ты уже получил некоторую информацию. Спроси имя клиента, если оно ещё неизвестно. Будь вежлив."
             elif next_field == "название компании":
-                system_extra = "Твоя задача: спросить название компании. Не пиши ничего, кроме вопроса."
+                system_extra = known_info_str + "Спроси название компании клиента."
             elif next_field == "сфера деятельности":
-                system_extra = "Твоя задача: спросить сферу деятельности. Не пиши ничего, кроме вопроса."
+                system_extra = known_info_str + "Спроси, в какой сфере работает компания."
         else:
             session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Твоя задача: спросить о проблеме клиента. Не добавляй лишнего."
+            system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
 
     elif session["stage"] == "collecting_pain":
         if not collected.get("pain"):
-            system_extra = known_info_str + "Твоя задача: спросить о проблеме клиента (боль). Не предлагай консультацию, не рассказывай о компании. Просто задай вопрос."
+            system_extra = known_info_str + "Ты сейчас на этапе выяснения проблемы клиента. Задай уточняющий вопрос о его бизнесе, чтобы понять его потребности."
         else:
             session["stage"] = "offer_consultation"
-            system_extra = known_info_str + "Твоя задача: предложить бесплатную консультацию и попросить номер телефона и удобное время. Например: 'Для более точного расчёта предлагаю бесплатную консультацию с нашим специалистом. Выберите, пожалуйста, удобное время для звонка и оставьте ваш номер телефона.' Не задавай других вопросов."
+            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию и попроси номер телефона и удобное время."
 
     elif session["stage"] == "offer_consultation":
-        system_extra = known_info_str + "Твоя задача: предложить консультацию и попросить номер телефона и время. Не пиши ничего другого."
+        system_extra = known_info_str + "Предложи бесплатную консультацию и попроси номер телефона и удобное время."
 
     elif session["stage"] == "completed":
-        system_extra = known_info_str + "Твоя задача: отвечать на вопросы клиента, используя известные данные. Если вопрос не по теме, скажи, что можешь помочь только по услугам компании. Не предлагай больше консультаций."
+        system_extra = known_info_str + "Диалог завершён, консультация назначена. Отвечай на вопросы клиента, используя известные данные. Не предлагай больше консультаций."
 
     # Формируем context_info
     context_info = {
@@ -243,8 +230,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "collected": collected
     }
 
-    print(f"➡️ stage={session['stage']}, missing={missing}, known={known_info_parts}")
-    print(f"➡️ system_extra: {system_extra}")
+    print(f"stage={session['stage']}, missing={missing}, known={known_info_parts}")
+    print(f"system_extra: {system_extra}")
 
     try:
         payload = {
@@ -265,7 +252,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если модель сама предложила номер, переводим стадию
+    # Если модель сама предложила номер, переводим стадию (но не агрессивно)
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
