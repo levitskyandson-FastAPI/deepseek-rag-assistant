@@ -11,15 +11,18 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from services.leads import save_lead
-from core.logger import logger  # импортируем логгер
+from core.logger import logger
 
 load_dotenv()
 
-import os
+# --- Загружаем токен ДО вывода ---
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
+
 print(f"🚀 Starting bot with PID: {os.getpid()}")
 print(f"🔑 TELEGRAM_TOKEN starts with: {TELEGRAM_TOKEN[:10]}...")
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 API_URL = "https://deepseek-rag-assistant-1-ldph.onrender.com/chat/"
 USER_ID = "levitsky_agency"
 
@@ -42,7 +45,7 @@ def extract_name(text):
             return match.group(1).strip()
     return None
 
-def extract_company(text):
+def extract_company(text, name_already_known=False):
     patterns = [
         r'(?:компания|фирма|организация|ооо|ип|зао|ао)\s+([А-ЯЁ][А-ЯЁа-яё\s]+?)(?:\s|\.|,|$|и)',
         r'([А-ЯЁ][А-ЯЁа-яё\s]{2,}?)\s+(?:компания|фирма)',
@@ -51,6 +54,11 @@ def extract_company(text):
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             return match.group(1).strip()
+    # Если имя уже известно, и сообщение состоит из одного слова с большой буквы – считаем компанией
+    if name_already_known:
+        words = text.strip().split()
+        if len(words) == 1 and words[0][0].isupper():
+            return words[0]
     return None
 
 def extract_industry(text):
@@ -96,7 +104,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session["collected"]["name"] = extracted_name
         logger.info(f"✅ Имя извлечено: {extracted_name}")
 
-    extracted_company = extract_company(user_message)
+    # Передаём флаг, что имя уже известно, для улучшенного извлечения компании
+    name_known = session["collected"].get("name") is not None
+    extracted_company = extract_company(user_message, name_known)
     if extracted_company and not session["collected"].get("company"):
         session["collected"]["company"] = extracted_company
         logger.info(f"✅ Компания извлечена: {extracted_company}")
@@ -194,44 +204,44 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Управление стадиями
+    # Управление стадиями с жёсткими инструкциями
     system_extra = ""
 
     if session["stage"] == "initial":
         if missing:
             session["stage"] = "gathering_info"
             if not collected.get("name"):
-                system_extra = "Представься и спроси имя клиента. Ты можешь кратко поприветствовать, но главное – узнать имя."
+                system_extra = "Твоя задача: спросить имя клиента. Не пиши ничего, кроме вопроса об имени. Не рассказывай о компании, не давай справок, не предлагай услуги."
             elif not collected.get("company"):
-                system_extra = "Ты уже знаешь имя клиента. Теперь вежливо спроси название его компании."
+                system_extra = "Твоя задача: спросить название компании клиента. Не добавляй ничего лишнего."
             elif not collected.get("industry"):
-                system_extra = "Узнай, в какой сфере работает компания клиента."
+                system_extra = "Твоя задача: спросить сферу деятельности компании. Только вопрос."
         else:
             session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные о клиенте собраны. Теперь выясни его потребность (боль). Задай открытый вопрос, например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?'"
+            system_extra = known_info_str + "Все данные о клиенте собраны. Теперь выясни его потребность (боль). Задай открытый вопрос, например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?' Не предлагай услуги."
 
     elif session["stage"] == "gathering_info":
         if missing:
             next_field = missing[0]
             if next_field == "имя":
-                system_extra = known_info_str + "Ты уже получил некоторую информацию. Спроси имя клиента, если оно ещё неизвестно. Будь вежлив."
+                system_extra = known_info_str + "Спроси имя клиента, если оно ещё неизвестно. Только вопрос."
             elif next_field == "название компании":
-                system_extra = known_info_str + "Спроси название компании клиента."
+                system_extra = known_info_str + "Спроси название компании клиента. Только вопрос."
             elif next_field == "сфера деятельности":
-                system_extra = known_info_str + "Спроси, в какой сфере работает компания."
+                system_extra = known_info_str + "Спроси сферу деятельности компании. Только вопрос."
         else:
             session["stage"] = "collecting_pain"
             system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
 
     elif session["stage"] == "collecting_pain":
         if not collected.get("pain"):
-            system_extra = known_info_str + "Ты сейчас на этапе выяснения проблемы клиента. Задай уточняющий вопрос о его бизнесе, чтобы понять его потребности."
+            system_extra = known_info_str + "Ты сейчас на этапе выяснения проблемы клиента. Задай уточняющий вопрос о его бизнесе, чтобы понять его потребности. Не предлагай консультацию."
         else:
             session["stage"] = "offer_consultation"
-            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию и попроси номер телефона и удобное время."
+            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию и попроси номер телефона и удобное время. Не задавай больше вопросов."
 
     elif session["stage"] == "offer_consultation":
-        system_extra = known_info_str + "Предложи бесплатную консультацию и попроси номер телефона и удобное время."
+        system_extra = known_info_str + "Предложи бесплатную консультацию и попроси номер телефона и удобное время. Не пиши ничего другого."
 
     elif session["stage"] == "completed":
         system_extra = known_info_str + "Диалог завершён, консультация назначена. Отвечай на вопросы клиента, используя известные данные. Не предлагай больше консультаций."
@@ -250,7 +260,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         payload = {
             "user_id": USER_ID,
             "message": user_message,
-            "use_rag": True,
+            "use_rag": False,  # временно отключаем RAG
             "system_extra": system_extra,
             "context_info": json.dumps(context_info, ensure_ascii=False)
         }
