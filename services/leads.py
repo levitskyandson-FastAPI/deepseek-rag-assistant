@@ -1,10 +1,10 @@
 from services.supabase import supabase
 from core.logger import logger
 
-async def save_lead(telegram_user_id: int, name: str = None, phone: str = None, preferred_date: str = None, pain: str = None, extra_data: dict = None):
-    """
-    Сохраняет данные лида в таблицу leads.
-    """
+async def save_lead(telegram_user_id: int, name: str = None, phone: str = None, 
+                    company: str = None, industry: str = None, 
+                    preferred_date: str = None, pain: str = None, 
+                    extra_data: dict = None):
     try:
         if not phone:
             logger.warning("Попытка сохранить лид без телефона")
@@ -18,6 +18,10 @@ async def save_lead(telegram_user_id: int, name: str = None, phone: str = None, 
         }
         if name:
             data["name"] = name
+        if company:
+            data["company"] = company
+        if industry:
+            data["industry"] = industry
         if preferred_date:
             data["preferred_date"] = preferred_date
 
