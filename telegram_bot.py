@@ -2,6 +2,7 @@ import os
 import re
 import json
 import httpx
+import asyncio
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -246,12 +247,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"system_extra: {system_extra}")
 
     try:
-        # Используем асинхронный HTTP-клиент вместо requests
         async with httpx.AsyncClient(timeout=30.0) as client:
             payload = {
                 "user_id": USER_ID,
                 "message": user_message,
-                "use_rag": False,  # отключаем RAG для отладки, потом можно включить
+                "use_rag": False,  # отключаем RAG для отладки
                 "system_extra": system_extra,
                 "context_info": json.dumps(context_info, ensure_ascii=False)
             }
@@ -270,18 +270,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not session["greeted"]:
         session["greeted"] = True
 
-    # Если модель сама предложила номер, переводим стадию
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
     await update.message.reply_text(reply)
 
-def main():
+async def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
+    # Принудительно сбрасываем вебхук, чтобы убить все старые сессии
+    await app.bot.delete_webhook(drop_pending_updates=True)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("🤖 Telegram Bot запущен и готов к работе!")
-    app.run_polling()
+    await app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
