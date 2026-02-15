@@ -2,7 +2,7 @@ import os
 import re
 import json
 import httpx
-import asyncio
+import requests  # добавили для сброса вебхука
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -17,10 +17,25 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
 
+# Сброс вебхука (синхронно)
+requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=True")
+
 API_URL = os.getenv("API_URL", "https://deepseek-assistant-api.onrender.com/chat/")
 USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
+
+# ... остальные функции (extract_name, extract_company и т.д.) без изменений ...
+
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("🤖 Telegram Bot запущен и готов к работе!")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
 
 # ---------- Извлечение данных ----------
 def extract_name(text):
@@ -275,14 +290,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(reply)
 
-async def main():
+def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-    # Принудительно сбрасываем вебхук, чтобы убить все старые сессии
-    await app.bot.delete_webhook(drop_pending_updates=True)
+    # Если хотите сбросить вебхук, сделайте это синхронно через requests или уберите пока
+    # app.bot.delete_webhook(...) – асинхронный, его нельзя вызывать так.
+    # Для простоты можно пока убрать сброс вебхука.
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("🤖 Telegram Bot запущен и готов к работе!")
-    await app.run_polling()
+    app.run_polling()  # синхронный метод
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
