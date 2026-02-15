@@ -251,7 +251,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             payload = {
                 "user_id": USER_ID,
                 "message": user_message,
-                "use_rag": False,  # RAG отключён, можно включить позже
+                "use_rag": False
                 "system_extra": system_extra,
                 "context_info": json.dumps(context_info, ensure_ascii=False)
             }
