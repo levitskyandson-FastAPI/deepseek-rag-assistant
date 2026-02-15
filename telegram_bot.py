@@ -11,12 +11,6 @@ from collections import defaultdict
 from services.leads import save_lead
 from core.logger import logger
 
-load_dotenv()
-
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
-
 # Сброс вебхука (синхронно)
 requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=True")
 
