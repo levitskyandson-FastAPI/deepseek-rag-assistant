@@ -2,7 +2,6 @@ import os
 import re
 import json
 import httpx
-import requests
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -11,7 +10,13 @@ from collections import defaultdict
 from services.leads import save_lead
 from core.logger import logger
 
-API_URL = os.getenv("API_URL", "https://deepseek-assistant-api.onrender.com/chat/")
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
+
+API_URL = os.getenv("API_URL", "https://deepseek-rag-assistant.onrender.com/chat/")
 USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
@@ -79,195 +84,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user_message = update.message.text
-    session = user_sessions[user_id]
-
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
-    # --- Извлечение данных ---
-    extracted_name = extract_name(user_message)
-    if extracted_name and not session["collected"].get("name"):
-        session["collected"]["name"] = extracted_name
-        logger.info(f"✅ Имя извлечено: {extracted_name}")
-
-    name_known = session["collected"].get("name") is not None
-    extracted_company = extract_company(user_message, name_known)
-    if extracted_company and not session["collected"].get("company"):
-        session["collected"]["company"] = extracted_company
-        logger.info(f"✅ Компания извлечена: {extracted_company}")
-
-    extracted_industry = extract_industry(user_message)
-    if extracted_industry and not session["collected"].get("industry"):
-        session["collected"]["industry"] = extracted_industry
-        logger.info(f"✅ Сфера извлечена: {extracted_industry}")
-    # -------------------------
-
-    # Проверка номера телефона
-    phone_match = PHONE_REGEX.search(user_message)
-    if phone_match and session["stage"] != "completed":
-        phone = phone_match.group()
-        name = session["collected"].get("name")
-        company = session["collected"].get("company")
-        industry = session["collected"].get("industry")
-        pain = session["collected"].get("pain")
-
-        # Парсинг даты и времени
-        preferred_date = None
-        msg_lower = user_message.lower()
-        if "сегодня" in msg_lower:
-            preferred_date = "сегодня"
-        elif "завтра" in msg_lower:
-            preferred_date = "завтра"
-        elif "послезавтра" in msg_lower:
-            preferred_date = "послезавтра"
-
-        time_match = re.search(r'(\d{1,2})[:–-.](\d{2})', user_message)
-        if not time_match:
-            time_match = re.search(r'в\s+(\d{1,2})(?:\s|$)', user_message)
-        if time_match:
-            hour = time_match.group(1)
-            minute = time_match.group(2) if len(time_match.groups()) > 1 else "00"
-            time_str = f"{hour}:{minute}"
-            if preferred_date:
-                preferred_date = f"{preferred_date} в {time_str}"
-            else:
-                preferred_date = time_str
-
-        # Сохраняем в сессию
-        session["collected"]["phone"] = phone
-        if name: session["collected"]["name"] = name
-        if company: session["collected"]["company"] = company
-        if industry: session["collected"]["industry"] = industry
-        if pain: session["collected"]["pain"] = pain
-        if preferred_date: session["collected"]["preferred_date"] = preferred_date
-
-        logger.info(f"💾 Попытка сохранить лида: phone={phone}, name={name}, company={company}")
-        logger.info(f"Calling save_lead with phone={phone}")
-
-        try:
-            await save_lead(
-                telegram_user_id=user_id,
-                name=name,
-                phone=phone,
-                company=company,
-                industry=industry,
-                pain=pain,
-                preferred_date=preferred_date,
-                extra_data={"source": "telegram_bot", "stage": session["stage"]}
-            )
-            logger.info("✅ save_lead выполнен успешно")
-        except Exception as e:
-            logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
-
-        session["stage"] = "completed"
-        reply = "Спасибо! Я передал ваш номер менеджеру. "
-        if preferred_date:
-            reply += f"Вы выбрали {preferred_date}. "
-        if name:
-            reply += f"Мы запомнили ваше имя, {name}. "
-        reply += "Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
-        await update.message.reply_text(reply)
-        return
-
-    # Определяем недостающие поля
-    collected = session["collected"]
-    missing = []
-    if not collected.get("name"):
-        missing.append("имя")
-    if not collected.get("company"):
-        missing.append("название компании")
-    if not collected.get("industry"):
-        missing.append("сфера деятельности")
-
-    # Формируем строку известных данных
-    known_info_parts = []
-    if collected.get("name"): known_info_parts.append(f"имя: {collected['name']}")
-    if collected.get("company"): known_info_parts.append(f"компания: {collected['company']}")
-    if collected.get("industry"): known_info_parts.append(f"сфера: {collected['industry']}")
-    if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
-    known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
-
-    # Управление стадиями
-    system_extra = ""
-
-    if session["stage"] == "initial":
-        if missing:
-            session["stage"] = "gathering_info"
-            if not collected.get("name"):
-                system_extra = "Твоя задача: спросить имя клиента. Не пиши ничего, кроме вопроса об имени. Не рассказывай о компании, не давай справок, не предлагай услуги."
-            elif not collected.get("company"):
-                system_extra = "Твоя задача: спросить название компании клиента. Не добавляй ничего лишнего."
-            elif not collected.get("industry"):
-                system_extra = "Твоя задача: спросить сферу деятельности компании. Только вопрос."
-        else:
-            session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные о клиенте собраны. Теперь выясни его потребность (боль). Задай открытый вопрос, например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь в обработке заявок?' Не предлагай услуги."
-
-    elif session["stage"] == "gathering_info":
-        if missing:
-            next_field = missing[0]
-            if next_field == "имя":
-                system_extra = known_info_str + "Спроси имя клиента, если оно ещё неизвестно. Только вопрос."
-            elif next_field == "название компании":
-                system_extra = known_info_str + "Спроси название компании клиента. Только вопрос."
-            elif next_field == "сфера деятельности":
-                system_extra = known_info_str + "Спроси сферу деятельности компании. Только вопрос."
-        else:
-            session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
-
-    elif session["stage"] == "collecting_pain":
-        if not collected.get("pain"):
-            system_extra = known_info_str + "Ты сейчас на этапе выяснения проблемы клиента. Задай уточняющий вопрос о его бизнесе, чтобы понять его потребности. Не предлагай консультацию."
-        else:
-            session["stage"] = "offer_consultation"
-            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию и попроси номер телефона и удобное время. Не задавай больше вопросов."
-
-    elif session["stage"] == "offer_consultation":
-        system_extra = known_info_str + "Предложи бесплатную консультацию и попроси номер телефона и удобное время. Не пиши ничего другого."
-
-    elif session["stage"] == "completed":
-        system_extra = known_info_str + "Диалог завершён, консультация назначена. Отвечай на вопросы клиента, используя известные данные. Не предлагай больше консультаций."
-
-    # Формируем context_info
-    context_info = {
-        "stage": session["stage"],
-        "greeted": session.get("greeted", False),
-        "collected": collected
-    }
-
-    logger.info(f"stage={session['stage']}, missing={missing}, known={known_info_parts}")
-    logger.info(f"system_extra: {system_extra}")
-
+    """
+    Временно упрощённая версия – отвечает на любое сообщение.
+    Позже сюда можно вернуть всю логику сбора данных.
+    """
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            payload = {
-                "user_id": USER_ID,
-                "message": user_message,
-                "use_rag": False,  # отключаем RAG для отладки
-                "system_extra": system_extra,
-                "context_info": json.dumps(context_info, ensure_ascii=False)
-            }
-            response = await client.post(
-                API_URL,
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            data = response.json()
-            reply = data.get("reply", "⚠️ Не удалось получить ответ.")
+        user_message = update.message.text
+        logger.info(f"Получено сообщение: {user_message}")
+        
+        # Простой ответ для проверки
+        reply = "Привет! Я услышал ваше сообщение. (это тестовый ответ)"
+        
+        await update.message.reply_text(reply)
+        logger.info("Ответ отправлен")
     except Exception as e:
-        logger.error(f"Ошибка вызова API: {e}", exc_info=True)
-        reply = f"❌ Ошибка: {e}"
-
-    if not session["greeted"]:
-        session["greeted"] = True
-
-    if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
-        session["stage"] = "offer_consultation"
-
-    await update.message.reply_text(reply)
+        logger.error(f"Ошибка в handle_message: {e}", exc_info=True)
+        await update.message.reply_text("Извините, произошла внутренняя ошибка.")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
