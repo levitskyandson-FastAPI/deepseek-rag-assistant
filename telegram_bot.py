@@ -11,9 +11,6 @@ from collections import defaultdict
 from services.leads import save_lead
 from core.logger import logger
 
-# Сброс вебхука (синхронно)
-requests.get(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=True")
-
 API_URL = os.getenv("API_URL", "https://deepseek-assistant-api.onrender.com/chat/")
 USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
