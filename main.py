@@ -41,6 +41,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.error(f"❌ Ошибка установки webhook: {e}")
 
+    # Выводим все зарегистрированные маршруты для отладки
+    logger.info("📋 Зарегистрированные маршруты:")
+    for route in app.routes:
+        logger.info(f"  {route.path}")
+
     yield
 
     # Shutdown
@@ -69,10 +74,12 @@ app.add_middleware(
 app.include_router(chat_router)
 app.include_router(documents_router)
 
-# Эндпоинт для получения обновлений от Telegram
+# Эндпоинт для получения обновлений от Telegram (с логированием)
 @app.post("/webhook")
 async def webhook(request: Request):
+    logger.info("📨 Получен webhook от Telegram")
     json_data = await request.json()
+    logger.info(f"📦 Данные обновления: {json_data}")
     update = Update.de_json(json_data, telegram_app.bot)
     await telegram_app.process_update(update)
     return {"ok": True}
