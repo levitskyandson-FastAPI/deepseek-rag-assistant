@@ -1,30 +1,23 @@
 import os
 import re
 import json
-import requests
+import httpx
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from collections import defaultdict
-
-import nest_asyncio
-nest_asyncio.apply()
 
 from services.leads import save_lead
 from core.logger import logger
 
 load_dotenv()
 
-# --- Загружаем токен ДО вывода ---
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
 
-print(f"🚀 Starting bot with PID: {os.getpid()}")
-print(f"🔑 TELEGRAM_TOKEN starts with: {TELEGRAM_TOKEN[:10]}...")
-
-API_URL = "https://deepseek-rag-assistant-1-ldph.onrender.com/chat/"
-USER_ID = "levitsky_agency"
+API_URL = os.getenv("API_URL", "https://deepseek-assistant-api.onrender.com/chat/")
+USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
 
@@ -54,7 +47,6 @@ def extract_company(text, name_already_known=False):
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
             return match.group(1).strip()
-    # Если имя уже известно, и сообщение состоит из одного слова с большой буквы – считаем компанией
     if name_already_known:
         words = text.strip().split()
         if len(words) == 1 and words[0][0].isupper():
@@ -104,7 +96,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session["collected"]["name"] = extracted_name
         logger.info(f"✅ Имя извлечено: {extracted_name}")
 
-    # Передаём флаг, что имя уже известно, для улучшенного извлечения компании
     name_known = session["collected"].get("name") is not None
     extracted_company = extract_company(user_message, name_known)
     if extracted_company and not session["collected"].get("company"):
@@ -156,11 +147,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if pain: session["collected"]["pain"] = pain
         if preferred_date: session["collected"]["preferred_date"] = preferred_date
 
-        # Логируем перед вызовом save_lead
         logger.info(f"💾 Попытка сохранить лида: phone={phone}, name={name}, company={company}")
         logger.info(f"Calling save_lead with phone={phone}")
 
-        # Сохраняем в Supabase
         try:
             await save_lead(
                 telegram_user_id=user_id,
@@ -204,7 +193,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Управление стадиями с жёсткими инструкциями
+    # Управление стадиями
     system_extra = ""
 
     if session["stage"] == "initial":
@@ -257,18 +246,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"system_extra: {system_extra}")
 
     try:
-        payload = {
-            "user_id": USER_ID,
-            "message": user_message,
-            "use_rag": False,  # временно отключаем RAG
-            "system_extra": system_extra,
-            "context_info": json.dumps(context_info, ensure_ascii=False)
-        }
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(API_URL, json=payload, headers=headers, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-        reply = data.get("reply", "⚠️ Не удалось получить ответ.")
+        # Используем асинхронный HTTP-клиент вместо requests
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            payload = {
+                "user_id": USER_ID,
+                "message": user_message,
+                "use_rag": False,  # отключаем RAG для отладки, потом можно включить
+                "system_extra": system_extra,
+                "context_info": json.dumps(context_info, ensure_ascii=False)
+            }
+            response = await client.post(
+                API_URL,
+                json=payload,
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            data = response.json()
+            reply = data.get("reply", "⚠️ Не удалось получить ответ.")
     except Exception as e:
         logger.error(f"Ошибка вызова API: {e}", exc_info=True)
         reply = f"❌ Ошибка: {e}"
