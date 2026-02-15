@@ -2,7 +2,7 @@ import os
 import re
 import json
 import httpx
-import requests  # добавили для сброса вебхука
+import requests
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -24,18 +24,6 @@ API_URL = os.getenv("API_URL", "https://deepseek-assistant-api.onrender.com/chat
 USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
 PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
-
-# ... остальные функции (extract_name, extract_company и т.д.) без изменений ...
-
-def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("🤖 Telegram Bot запущен и готов к работе!")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
 
 # ---------- Извлечение данных ----------
 def extract_name(text):
@@ -292,13 +280,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
-    # Если хотите сбросить вебхук, сделайте это синхронно через requests или уберите пока
-    # app.bot.delete_webhook(...) – асинхронный, его нельзя вызывать так.
-    # Для простоты можно пока убрать сброс вебхука.
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     print("🤖 Telegram Bot запущен и готов к работе!")
-    app.run_polling()  # синхронный метод
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
