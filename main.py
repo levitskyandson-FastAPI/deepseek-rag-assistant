@@ -30,20 +30,25 @@ async def lifespan(app: FastAPI):
     logger.info(f"📚 Модель чата: {settings.chat_model}")
     logger.info(f"🧠 Режим RAG: активен")
 
-    # Инициализируем Telegram Application
-    await telegram_app.initialize()
-    logger.info("✅ Telegram Application инициализирован")
+    # Инициализируем Telegram Application с обработкой ошибок
+    try:
+        await telegram_app.initialize()
+        logger.info("✅ Telegram Application инициализирован")
+    except Exception as e:
+        logger.error(f"❌ Критическая ошибка инициализации Telegram: {e}", exc_info=True)
+        # Не вызываем raise, чтобы сервис продолжил работу без бота (или можно raise, если хотим остановить)
+        # raise
 
-    # Устанавливаем webhook
+    # Устанавливаем webhook с отбрасыванием накопленных обновлений
     webhook_url = os.getenv("WEBHOOK_URL")
     if not webhook_url:
         logger.error("WEBHOOK_URL not set. Bot will not receive updates.")
     else:
         try:
-            await telegram_app.bot.set_webhook(url=webhook_url)
-            logger.info(f"✅ Webhook установлен на {webhook_url}")
+            await telegram_app.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+            logger.info(f"✅ Webhook установлен на {webhook_url} (старые обновления отброшены)")
         except Exception as e:
-            logger.error(f"❌ Ошибка установки webhook: {e}")
+            logger.error(f"❌ Ошибка установки webhook: {e}", exc_info=True)
 
     # Выводим все зарегистрированные маршруты для отладки
     logger.info("📋 Зарегистрированные маршруты:")
@@ -53,8 +58,17 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    await telegram_app.bot.delete_webhook()
-    await telegram_app.shutdown()
+    logger.info("🛑 Начинаем корректное завершение...")
+    try:
+        await telegram_app.bot.delete_webhook()
+        logger.info("✅ Webhook удалён")
+    except Exception as e:
+        logger.error(f"❌ Ошибка удаления webhook: {e}")
+    try:
+        await telegram_app.shutdown()
+        logger.info("✅ Telegram app shutdown ok")
+    except Exception as e:
+        logger.error(f"❌ Ошибка shutdown: {e}")
     logger.info("🛑 Остановка приложения...")
 
 # --- FastAPI app ---
@@ -82,12 +96,16 @@ app.include_router(documents_router)
 # Эндпоинт для получения обновлений от Telegram (с логированием)
 @app.post("/webhook")
 async def webhook(request: Request):
-    logger.info("📨 Получен webhook от Telegram")
-    json_data = await request.json()
-    logger.info(f"📦 Данные обновления: {json_data}")
-    update = Update.de_json(json_data, telegram_app.bot)
-    await telegram_app.process_update(update)
-    return {"ok": True}
+    logger.info("🔥🔥🔥 WEBHOOK ВЫЗВАН 🔥🔥🔥")
+    try:
+        json_data = await request.json()
+        logger.info(f"📦 Данные обновления: {json_data}")
+        update = Update.de_json(json_data, telegram_app.bot)
+        await telegram_app.process_update(update)
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"❌ Ошибка в webhook: {e}", exc_info=True)
+        return {"ok": False, "error": str(e)}
 
 # Корневой эндпоинт для проверки
 @app.get("/")

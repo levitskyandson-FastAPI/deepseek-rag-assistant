@@ -193,7 +193,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
     known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
 
-    # Управление стадиями – естественно, но без лишних монологов
+    # Управление стадиями
     system_extra = ""
 
     if session["stage"] == "initial":
@@ -269,6 +269,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not session["greeted"]:
         session["greeted"] = True
 
+    # Исправлено: session["stage"] вместо session["status"]
     if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
         session["stage"] = "offer_consultation"
 
