@@ -30,7 +30,11 @@ async def lifespan(app: FastAPI):
     logger.info(f"📚 Модель чата: {settings.chat_model}")
     logger.info(f"🧠 Режим RAG: активен")
 
-    # Устанавливаем webhook для Telegram бота
+    # Инициализируем Telegram Application
+    await telegram_app.initialize()
+    logger.info("✅ Telegram Application инициализирован")
+
+    # Устанавливаем webhook
     webhook_url = os.getenv("WEBHOOK_URL")
     if not webhook_url:
         logger.error("WEBHOOK_URL not set. Bot will not receive updates.")
@@ -50,6 +54,7 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     await telegram_app.bot.delete_webhook()
+    await telegram_app.shutdown()
     logger.info("🛑 Остановка приложения...")
 
 # --- FastAPI app ---
