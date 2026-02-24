@@ -6,6 +6,7 @@ from services.rag import retrieve_relevant_docs
 from core.logger import logger
 
 async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int = 2000) -> str:
+    logger.info("ASK_DEEPSEEK CALLED")
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.deepseek_api_url}/chat/completions",
@@ -36,6 +37,7 @@ async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int
 
         # иногда DeepSeek возвращает text
         if "text" in choice:
+            logger.info(f"DEEPSEEK RESPONSE STRUCTURE: {data}")
             return choice["text"]
 
     raise ValueError(f"Unexpected DeepSeek response format: {data}")
