@@ -9,35 +9,36 @@ async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.deepseek_api_url}/chat/completions",
-            headers={"Authorization": f"Bearer {settings.deepseek_api_key}"},
+            headers={
+                "Authorization": f"Bearer {settings.deepseek_api_key}",
+                "Content-Type": "application/json",
+            },
             json={
                 "model": settings.chat_model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
             }
         )
-    resp.raise_for_status()
+
     data = resp.json()
-    if "choices" not in data:
-        logger.error(f"DeepSeek unexpected response: {data}")
-        return "Произошла ошибка обработки ответа модели."
-    choices = data.get("choices", [])
-    if not choices:
-        logger.error(f"DeepSeek empty choices: {data}")
-        return "Модель вернула пустой ответ."
 
-    first = choices[0]
+    # Логируем сырой ответ
+    logger.info(f"DeepSeek RAW response: {data}")
 
-    # 🔥 Безопасное извлечение
-    if "message" in first and "content" in first["message"]:
-        return first["message"]["content"]
+    # Защитный парсинг
+    if "choices" in data and len(data["choices"]) > 0:
+        choice = data["choices"][0]
 
-    if "text" in first:
-        return first["text"]
+        # формат OpenAI-совместимый
+        if "message" in choice and "content" in choice["message"]:
+            return choice["message"]["content"]
 
-    logger.error(f"DeepSeek unknown structure: {data}")
-    return "Произошла ошибка формата ответа модели."
+        # иногда DeepSeek возвращает text
+        if "text" in choice:
+            return choice["text"]
+
+    raise ValueError(f"Unexpected DeepSeek response format: {data}")
 
 async def ask_with_rag(
     user_message: str,
