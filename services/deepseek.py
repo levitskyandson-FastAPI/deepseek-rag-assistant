@@ -49,7 +49,15 @@ async def ask_with_rag(
     system_extra: Optional[str] = None,
     context_info: Optional[str] = None
 ) -> Tuple[str, List[str]]:
-    return f"LLM WORKS: {user_message}", []
+
+    sources = []
+
+    if use_rag:
+        docs = await retrieve_relevant_docs(user_message, user_id)
+
+        return f"RAG OK. Найдено документов: {len(docs)}", []
+
+    return "NO RAG", []
 
     # Инструкция о приветствии
     greeted = False
