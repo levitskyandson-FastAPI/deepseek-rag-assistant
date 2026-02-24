@@ -3,284 +3,702 @@ import re
 import json
 import httpx
 from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
+import sys
+from services.amocrm import AmoCRM
+import services.amocrm as amocrm_module
+
+
+print("AMOCRM PATH:", amocrm_module.__file__)
+
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from collections import defaultdict
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    filters,
+    ContextTypes,
+)
 
 from services.leads import save_lead
+
+from services.amocrm import AmoCRM
+from services.supabase import supabase
 from core.logger import logger
+
+
+# ======================================================
+# INIT
+# ======================================================
 
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN не задан в переменных окружения")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/chat/")
 
-API_URL = os.getenv("API_URL", "https://deepseek-rag-assistant.onrender.com/chat/")
-USER_ID = os.getenv("USER_ID", "levitsky_agency")
 
-PHONE_REGEX = re.compile(r'\+?[0-9]{10,15}')
+PHONE_REGEX = re.compile(r"(\+?\d[\d\s\-\(\)]{9,}\d)")
+MSK = timezone(timedelta(hours=3))
 
-# ---------- Извлечение данных ----------
-def extract_name(text):
-    text = re.sub(r'\s+', ' ', text).strip()
-    patterns = [
-        r'(?:меня зовут|зовут|мое имя|имя)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
-        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s+(?:на связи|на линии)',
-        r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)[,\s]',
-        r'^([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)$',
-        r'([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)\s*[—–-]',
-        r'[—–-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    return None
+# ======================================================
+# LEAD ENGINE
+# ======================================================
 
-def extract_company(text, name_already_known=False):
-    patterns = [
-        r'(?:компания|фирма|организация|ооо|ип|зао|ао)\s+([А-ЯЁ][А-ЯЁа-яё\s]+?)(?:\s|\.|,|$|и)',
-        r'([А-ЯЁ][А-ЯЁа-яё\s]{2,}?)\s+(?:компания|фирма)',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    if name_already_known:
-        words = text.strip().split()
-        if len(words) == 1 and words[0][0].isupper():
-            return words[0]
-    return None
+LEAD_TEMPLATE = {
+    "name": None,
+    "company": None,
+    "industry": None,
+    "problem": None,          # боль/задача клиента
+    "current_process": None,  # как сейчас
+    "volume": None,           # объём
+    "goal": None,             # цель/ожидаемый результат
+    "budget": None,           # бюджет
+    "position": None,   # ЛПР
+    
+    "phone": None,            # телефон
+    "preferred_date": None,   # когда удобно созвониться
+}
 
-def extract_industry(text):
-    keywords = ['торговля', 'продажи', 'логистика', 'медицина', 'образование',
-                'строительство', 'производство', 'услуги', 'ритейл', 'e-commerce']
-    for word in keywords:
-        if word in text.lower():
-            return word
-    match = re.search(r'(?:сфера|область|отрасль)\s+([а-яё\s]+?)(?:\s|\.|,|$)', text, re.IGNORECASE)
-    if match:
-        return match.group(1).strip()
-    return None
-# ------------------------------------------------
+# Обязательные поля для отправки лида (SaaS, универсально)
+REQUIRED_FIELDS = [
+    "name",
+    "company",
+    "industry",
+    "problem",
+    "current_process",
+    "volume",
+    "goal",
+    "budget",
+    
+    "phone",
+    "preferred_date",
+    "position",
+]
 
-user_sessions = defaultdict(lambda: {
-    "stage": "initial",
-    "greeted": False,
-    "collected": {}
-})
+JSON_RE = re.compile(r"<LEAD_JSON>\s*(\{.*?\})\s*</LEAD_JSON>", re.S)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    user_sessions[user_id] = {
-        "stage": "initial",
-        "greeted": True,
-        "collected": {}
-    }
-    await update.message.reply_text(
-        "👋 Добро пожаловать в Levitsky & Son AI Solutions!\n\n"
-        "Я — ваш ИИ-консультант. Расскажите, какая у вас задача, и я помогу подобрать решение."
+
+def extract_patch(text: str) -> dict:
+    m = JSON_RE.search(text or "")
+    if not m:
+        return {}
+    try:
+        obj = json.loads(m.group(1))
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+def apply_patch(collected: dict, patch: dict):
+    """Только непустые значения."""
+    if not isinstance(patch, dict):
+        return
+    for k, v in patch.items():
+        if k not in collected:
+            continue
+        if v is None:
+            continue
+        if isinstance(v, str) and not v.strip():
+            continue
+        collected[k] = v
+
+
+def normalize_phone(raw: str) -> str | None:
+    if not raw:
+        return None
+    p = re.sub(r"[^\d+]", "", raw)
+    # простая валидация: >=10 цифр
+    digits = re.sub(r"\D", "", p)
+    if len(digits) < 10:
+        return None
+    return p
+
+
+def extract_phone_and_date(text: str, old_preferred: str | None = None):
+    if not text:
+        return None, None
+
+    base_date = datetime.now(MSK).date()
+
+    phone = None
+    preferred_date = None
+
+    pm = PHONE_REGEX.search(text)
+    if pm:
+        phone = normalize_phone(pm.group(1))
+
+    tl = text.lower()
+
+    # --- определяем новую дату ---
+    if "послезавтра" in tl:
+        new_date = base_date + timedelta(days=2)
+    elif "завтра" in tl:
+        new_date = base_date + timedelta(days=1)
+    elif "сегодня" in tl:
+        new_date = base_date
+    else:
+        new_date = None
+
+    # --- определяем время ---
+    tm = re.search(r"(\d{1,2})[:.-](\d{2})", text)
+    new_time = None
+    if tm:
+        hh = tm.group(1).zfill(2)
+        mm = tm.group(2)
+        new_time = f"{hh}:{mm}"
+
+    # --- логика пересборки ---
+    if new_date:
+        date_str = new_date.strftime("%d.%m.%Y")
+        preferred_date = f"{date_str} {new_time}" if new_time else date_str
+
+    elif new_time and old_preferred:
+        # меняем только время, дату оставляем
+        old_date = old_preferred.split(" ")[0]
+        preferred_date = f"{old_date} {new_time}"
+
+    return phone, preferred_date
+
+
+def missing_required(collected: dict) -> list[str]:
+    return [f for f in REQUIRED_FIELDS if not collected.get(f)]
+
+
+def is_ready_for_handoff(collected: dict) -> bool:
+    return len(missing_required(collected)) == 0
+
+
+def build_lead_summary(collected: dict) -> str:
+    return f"""
+Имя: {collected.get('name')}
+Компания: {collected.get('company')}
+Сфера: {collected.get('industry')}
+Боль: {collected.get('problem')}
+Как сейчас: {collected.get('current_process')}
+Объём: {collected.get('volume')}
+Цель: {collected.get('goal')}
+Бюджет: {collected.get('budget')}
+Должность: {collected.get('position')}
+
+Телефон: {collected.get('phone')}
+Созвон: {collected.get('preferred_date')}
+"""
+async def load_client(client_id: str):
+    res = (
+        supabase.table("clients")
+        .select("*")
+        .eq("id", client_id)
+        .execute()
     )
 
+    if not res.data:
+        raise ValueError("Client not found")
+
+    client = res.data[0]
+
+    if not client.get("is_active"):
+        raise ValueError("Client inactive")
+
+    return client
+
+# ======================================================
+# SESSIONS
+# ======================================================
+
+async def load_session(user_id: int, client_id: str):
+    res = (
+        supabase.table("sessions")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("client_id", client_id)
+        .execute()
+    )
+
+    if res.data:
+        d = res.data[0]
+        return {
+            "conversation": json.loads(d["conversation"]),
+            "collected": json.loads(d["collected"]),
+            "lead_saved": d.get("lead_saved", False),
+            "contact_id": d.get("contact_id"),
+            "lead_id": d.get("lead_id"),
+        }
+
+    return {
+        "conversation": [],
+        "collected": LEAD_TEMPLATE.copy(),
+        "lead_saved": False,
+        "contact_id": None,
+        "lead_id": None,
+    }
+
+
+async def save_session(user_id: int, client_id: str, session: dict):
+    supabase.table("sessions").upsert(
+        {
+            "user_id": user_id,
+            "client_id": client_id,
+            "conversation": json.dumps(session["conversation"], ensure_ascii=False),
+            "collected": json.dumps(session["collected"], ensure_ascii=False),
+            "lead_saved": session["lead_saved"],           
+            "contact_id": session.get("contact_id"),
+            "lead_id": session.get("lead_id"),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        on_conflict="user_id,client_id",
+    ).execute()
+    
+# ======================================================
+# CONVERSATION ENGINE (LLM)
+# ======================================================
+
+def build_system_prompt(history: str, collected: dict) -> str:
+    today_str = datetime.now(MSK).strftime("%d.%m.%Y")
+    miss = missing_required(collected)
+    miss_str = ", ".join(miss) if miss else "нет"
+
+    return f"""
+Сегодняшняя дата: {today_str}
+
+Если пользователь говорит:
+- "сегодня" — это {today_str}
+- "завтра" — это дата +1 день
+- "послезавтра" — это дата +2 дня
+
+Всегда преобразуй относительные даты в формат:
+ДД.ММ.ГГГГ ЧЧ:ММ
+
+Ты — SaaS AI-ассистент, работаешь для разных компаний.
+
+
+Цель: естественный диалог + квалификация лида.
+ВАЖНО: лид отправляется менеджеру ТОЛЬКО когда собраны поля:
+{REQUIRED_FIELDS}
+
+СЕЙЧАС НЕ ХВАТАЕТ: {miss_str}
+
+    Правила:
+    - Пиши как живой менеджер.
+    - Максимум 1 вопрос за сообщение.
+    - Не делай анкету из 10 пунктов.
+    - Сначала короткая реакция, потом 1 вопрос.
+    - Не обещай "отправил договор/письмо" — этого нет в коде.
+    - Если пользователь ответил сразу несколькими фактами — вытащи их и НЕ переспрашивай.
+    - В начале каждого сообщения употребляй разные слова одобрения а не только Отлично
+    - Если не указана должность — спроси:
+    - Подскажите, пожалуйста, какую должность вы занимаете в компании?
+    
+    СТИЛЬ И РАЗНООБРАЗИЕ:
+    СТРОГИЕ ПРАВИЛА ПО РАЗНООБРАЗИЮ:
+
+    1. Запрещено начинать ответы одним и тем же словом два раза подряд.
+
+    2. Слово "Отлично" можно использовать НЕ ЧАЩЕ одного раза за диалог.
+
+    3. Если в предыдущем ответе использовалось:
+   - Отлично
+   - Понял
+   - Благодарю
+   - Хорошо
+   - Спасибо
+
+   то в следующем ответе ОБЯЗАТЕЛЬНО используй другое слово.
+
+    4. Чередуй одобрительные формулировки из списка:
+   - Понимаю
+   - Благодарю за уточнение
+   - Хороший момент
+   - Это логично
+   - Согласен
+   - Вижу задачу
+   - Спасибо, это важно
+   - Понял вас
+   - Да, это актуально
+   - Хорошо
+   - Принял
+     
+    Перед формированием ответа проверь:
+    - не повторяется ли начальное слово из предыдущего сообщения
+    - не используется ли "Отлично" чаще одного раза
+    Если повторяется — обязательно замени.
+
+    5. Нельзя использовать слово "Отлично" чаще одного раза за всю беседу.
+
+   6. НЕ повторяй часто формулировку "Чтобы мы могли".
+   Используй альтернативы:
+   - Чтобы предложить точное решение
+   - Чтобы рассчитать подходящий формат
+   - Чтобы оценить масштаб
+   - Чтобы подобрать оптимальную конфигурацию
+   - Чтобы понимать картину полностью
+   - Чтобы предложить лучший сценарий внедрения
+   - Чтобы сформировать корректное предложение
+   - Чтобы выстроить решение под вас
+   - Чтобы определить формат интеграции
+
+   7. Формулируй естественно. 
+   Запрещён шаблонный стиль.
+   Каждый ответ должен звучать как живой менеджер, а не как скрипт.
+
+   Если одно и то же слово уже использовалось в предыдущем ответе —
+   запрещено начинать им новый ответ.
+
+   Критично:
+   - В КАЖДОМ ответе ты ОБЯЗАН вернуть блок <LEAD_JSON>...</LEAD_JSON>.
+   - Заполняй ТОЛЬКО то, что реально понял из сообщения пользователя.
+   - Если поле не найдено — не добавляй его в JSON.
+
+   Формат ответа:
+   1) Текст пользователю
+   2) Затем на новой строке JSON блок:
+
+   Не используй имя пользователя,
+   пока он сам его не написал в текущем диалоге.
+
+<LEAD_JSON>
+{{"field":"value"}}
+</LEAD_JSON>
+
+Поля которые можно заполнять:
+- name
+- company
+- industry
+- problem
+- current_process
+- volume
+- goal
+- budget
+- position
+
+- phone
+- preferred_date (обязательно в формате ДД.ММ.ГГГГ ЧЧ:ММ)
+
+История:
+{history}
+
+Собранные данные:
+{json.dumps(collected, ensure_ascii=False)}
+"""
+
+def build_after_handoff_prompt(history: str, collected: dict) -> str:
+    return f"""
+Ты — AI-ассистент компании.
+
+Клиент уже оставил заявку.
+Лид передан менеджеру.
+
+РЕЖИМ: SUPPORT + RAG
+
+Разрешено:
+- Отвечать на вопросы клиента
+- Использовать информацию из документов
+- Работать с возражениями
+- Аргументировать преимуществами
+- Изменять телефон
+- Изменять дату/время созвона
+
+Запрещено:
+- Продолжать квалификацию
+- Собирать бюджет, боль, объём
+- Назначать новую консультацию без запроса клиента
+
+Если клиент просит изменить:
+- телефон → обнови phone
+- время → обнови preferred_date
+
+Если информации нет в документах —
+честно скажи, что уточнишь у менеджера.
+
+Отвечай кратко.
+Как живой менеджер.
+Без шаблонности.
+
+Текущие данные:
+{json.dumps(collected, ensure_ascii=False)}
+
+История:
+{history}
+"""
+
+# ======================================================
+# CRM ADAPTER
+# ======================================================
+
+async def notify_manager(context, lead: dict, manager_chat_id: str | None):
+    if not manager_chat_id:
+        logger.warning("MANAGER_CHAT_ID is None — notify skipped")
+        return
+
+    msg = "🔥 Новый лид\n\n" + build_lead_summary(lead)
+
+    await context.bot.send_message(
+        chat_id=manager_chat_id,
+        text=msg,
+    )
+
+
+# ======================================================
+# MAIN HANDLER
+# ======================================================
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     user_id = update.effective_user.id
-    user_message = update.message.text
-    session = user_sessions[user_id]
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    CLIENT_ID = context.application.bot_data.get("client_id")
+    CLIENT_DATA = await load_client(CLIENT_ID)
 
-    # --- Извлечение данных ---
-    extracted_name = extract_name(user_message)
-    if extracted_name and not session["collected"].get("name"):
-        session["collected"]["name"] = extracted_name
-        logger.info(f"✅ Имя извлечено: {extracted_name}")
 
-    name_known = session["collected"].get("name") is not None
-    extracted_company = extract_company(user_message, name_known)
-    if extracted_company and not session["collected"].get("company"):
-        session["collected"]["company"] = extracted_company
-        logger.info(f"✅ Компания извлечена: {extracted_company}")
+    crm_settings = CLIENT_DATA.get("crm_settings") or {}
+    if isinstance(crm_settings, str):
+        try:
+            crm_settings = json.loads(crm_settings)
+        except:
+            crm_settings = {}
+    MANAGER_CHAT_ID = crm_settings.get(
+        "telegram_manager_chat_id"
+    ) or CLIENT_DATA.get("manager_chat_id")
+    AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
+    crm = None
+    if AMO_ACCOUNT_KEY:
+        try:
+            crm = AmoCRM(AMO_ACCOUNT_KEY)
+        except Exception as e:
+            logger.exception(e)
 
-    extracted_industry = extract_industry(user_message)
-    if extracted_industry and not session["collected"].get("industry"):
-        session["collected"]["industry"] = extracted_industry
-        logger.info(f"✅ Сфера извлечена: {extracted_industry}")
-    # -------------------------
+    if not CLIENT_ID:
+        raise ValueError("client_id not found in bot_data")
 
-    # Проверка номера телефона (приоритетно)
-    phone_match = PHONE_REGEX.search(user_message)
-    if phone_match and session["stage"] != "completed":
-        phone = phone_match.group()
-        name = session["collected"].get("name")
-        company = session["collected"].get("company")
-        industry = session["collected"].get("industry")
-        pain = session["collected"].get("pain")
+    text = update.message.text or ""
 
-        # Парсинг даты и времени
-        preferred_date = None
-        msg_lower = user_message.lower()
-        if "сегодня" in msg_lower:
-            preferred_date = "сегодня"
-        elif "завтра" in msg_lower:
-            preferred_date = "завтра"
-        elif "послезавтра" in msg_lower:
-            preferred_date = "послезавтра"
+    session = await load_session(user_id, CLIENT_ID)
+    session["conversation"].append({"role": "user", "content": text})
+    # ======================================================
+    # PRE-LLM: update phone / preferred_date from user text
+    # (чтобы LLM видел уже актуальные значения)
+    # ======================================================
 
-        time_match = re.search(r'(\d{1,2})[:–-.](\d{2})', user_message)
-        if not time_match:
-            time_match = re.search(r'в\s+(\d{1,2})(?:\s|$)', user_message)
-        if time_match:
-            hour = time_match.group(1)
-            minute = time_match.group(2) if len(time_match.groups()) > 1 else "00"
-            time_str = f"{hour}:{minute}"
-            if preferred_date:
-                preferred_date = f"{preferred_date} в {time_str}"
-            else:
-                preferred_date = time_str
+    old_phone = session["collected"].get("phone")
+    old_date = session["collected"].get("preferred_date")
 
-        # Сохраняем в сессию
-        session["collected"]["phone"] = phone
-        if name: session["collected"]["name"] = name
-        if company: session["collected"]["company"] = company
-        if industry: session["collected"]["industry"] = industry
-        if pain: session["collected"]["pain"] = pain
-        if preferred_date: session["collected"]["preferred_date"] = preferred_date
+    phone_regex, preferred_date_regex = extract_phone_and_date(text)
 
-        logger.info(f"💾 Попытка сохранить лида: phone={phone}, name={name}, company={company}")
-        logger.info(f"Calling save_lead with phone={phone}")
+    if phone_regex:
+        session["collected"]["phone"] = phone_regex
+
+    if preferred_date_regex:
+        session["collected"]["preferred_date"] = preferred_date_regex
+
+    history_str = "\n".join(
+        f"{m['role']}: {m['content']}"
+        for m in session["conversation"][-30:]
+    )
+
+    if session.get("lead_saved"):
+        system_prompt = build_after_handoff_prompt(
+            history_str,
+            session["collected"]
+        )
+    else:
+        system_prompt = build_system_prompt(
+         history_str,
+            session["collected"]
+        )
+
+    # ======================================================
+    # LLM CALL
+    # ======================================================
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                API_URL,
+                json={
+                    "user_id": CLIENT_ID,
+                    "message": text,
+                    "system_extra": system_prompt,
+                    "use_rag": True,
+                    "context_info": json.dumps(
+                        {
+                            "client_id": CLIENT_ID,
+                            "source": "telegram"
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            )
+
+        data = response.json()
+        reply = (data.get("reply") or "").strip()
+
+        # ======================================
+        # APPLY LLM JSON PATCH
+        # ======================================
+
+        patch = extract_patch(reply)
+        if patch:
+            apply_patch(session["collected"], patch)
+
+    except Exception as e:
+        logger.error(f"LLM ERROR: {e}")
+        reply = "Произошёл сбой. Повторите запрос."
+
+
+    # ======================================================
+    # UPDATE PHONE / TIME + CRM SYNC
+    # ======================================================
+
+    old_phone = session["collected"].get("phone")
+    old_date = session["collected"].get("preferred_date")
+
+    # --- Regex fallback ---
+    phone_regex, preferred_date_regex = extract_phone_and_date(text,
+    session["collected"].get("preferred_date")
+    )
+
+    if phone_regex:
+        session["collected"]["phone"] = phone_regex
+
+    if preferred_date_regex:
+        session["collected"]["preferred_date"] = preferred_date_regex
+
+    new_phone = session["collected"].get("phone")
+    new_date = session["collected"].get("preferred_date")
+
+    phone_changed = new_phone and new_phone != old_phone
+    date_changed = new_date and new_date != old_date
+
+
+    # ======================================================
+    # CRM UPDATE (если лид уже создан)
+    # ======================================================
+
+    if session.get("lead_saved") and crm:
+
+        try:
+
+            if phone_changed and session.get("contact_id"):
+                crm.update_contact_phone(
+                    session["contact_id"],
+                    new_phone
+                )
+                logger.info("✅ Phone updated in AmoCRM")
+
+            if date_changed and session.get("lead_id"):
+                crm.update_lead_field(
+                    session["lead_id"],
+                    "meeting_time",
+                    new_date
+                )
+                logger.info("✅ Meeting time updated in AmoCRM")
+
+        except Exception as e:
+            logger.error("AmoCRM update error")
+            logger.exception(e)
+
+    # если изменилось — уведомляем менеджера
+    if session.get("lead_saved") and (phone_changed or date_changed):
+        await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+
+    # ======================================================
+    # HANDOFF
+    # ======================================================
+
+    if not session["lead_saved"] and is_ready_for_handoff(session["collected"]):
 
         try:
             await save_lead(
+                client_id=CLIENT_ID,
                 telegram_user_id=user_id,
-                name=name,
-                phone=phone,
-                company=company,
-                industry=industry,
-                pain=pain,
-                preferred_date=preferred_date,
-                extra_data={"source": "telegram_bot", "stage": session["stage"]}
+                phone=session["collected"].get("phone"),
+                name=session["collected"].get("name"),
+                company=session["collected"].get("company"),
+                industry=session["collected"].get("industry"),
+                pain=session["collected"].get("problem"),
+                expected_outcome=session["collected"].get("goal"),
+                preferred_date=session["collected"].get("preferred_date"),
+                extra_data={**session["collected"], "source": "telegram"},
             )
-            logger.info("✅ save_lead выполнен успешно")
         except Exception as e:
-            logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
+            logger.error(f"save_lead error: {e}")
 
-        session["stage"] = "completed"
-        reply = "Спасибо! Я передал ваш номер менеджеру. "
-        if preferred_date:
-            reply += f"Вы выбрали {preferred_date}. "
-        if name:
-            reply += f"Мы запомнили ваше имя, {name}. "
-        reply += "Он свяжется с вами в ближайшее время для согласования удобного времени консультации."
-        await update.message.reply_text(reply)
+        if crm:
+            try:
+                amo_ids = crm.create_lead(
+                    {
+                        "name": session["collected"].get("name"),
+                        "phone": session["collected"].get("phone"),
+                        "problem": session["collected"].get("problem"),
+                        "goal": session["collected"].get("goal"),
+                        "volume": session["collected"].get("volume"),
+                        "meeting_time": session["collected"].get("preferred_date"),
+                        "sphere": session["collected"].get("industry"),
+                        "budget": session["collected"].get("budget"),
+                        "position": session["collected"].get("position"),
+                        "company": session["collected"].get("company"),
+                    }
+                )
+                session["contact_id"] = amo_ids["contact_id"]
+                session["lead_id"] = amo_ids["lead_id"]
+            except Exception as e:
+                logger.error("amo lead error")
+                logger.exception(e)
+
+        await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+
+        session["lead_saved"] = True
+        await save_session(user_id, CLIENT_ID, session)
+
+        await update.message.reply_text(
+            "Заявка зафиксирована 👍 Менеджер свяжется с вами в указанное время."
+        )
         return
 
-    # Определяем недостающие поля
-    collected = session["collected"]
-    missing = []
-    if not collected.get("name"):
-        missing.append("имя")
-    if not collected.get("company"):
-        missing.append("название компании")
-    if not collected.get("industry"):
-        missing.append("сфера деятельности")
+    # ======================================================
+    # NORMAL REPLY
+    # ======================================================
 
-    # Формируем строку известных данных
-    known_info_parts = []
-    if collected.get("name"): known_info_parts.append(f"имя: {collected['name']}")
-    if collected.get("company"): known_info_parts.append(f"компания: {collected['company']}")
-    if collected.get("industry"): known_info_parts.append(f"сфера: {collected['industry']}")
-    if collected.get("preferred_date"): known_info_parts.append(f"консультация назначена на {collected['preferred_date']}")
-    known_info_str = "Известно: " + ", ".join(known_info_parts) + ". " if known_info_parts else ""
+    session["conversation"].append({"role": "assistant", "content": reply})
+    await save_session(user_id, CLIENT_ID, session)
+    await update.message.reply_text(reply or "Можете уточнить?")
 
-    # Управление стадиями
-    system_extra = ""
 
-    if session["stage"] == "initial":
-        if missing:
-            session["stage"] = "gathering_info"
-            if not collected.get("name"):
-                system_extra = "Ты общаешься с потенциальным клиентом. Вежливо спроси его имя. Не добавляй никакой информации о компании или услугах, просто задай вопрос."
-            elif not collected.get("company"):
-                system_extra = "Ты уже знаешь имя клиента. Теперь спроси название его компании. Будь краток."
-            elif not collected.get("industry"):
-                system_extra = "Спроси, в какой сфере работает компания клиента. Ограничься одним вопросом."
-        else:
-            session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные о клиенте собраны. Теперь выясни его потребность. Задай открытый вопрос, например: 'Расскажите подробнее, с какими трудностями вы сталкиваетесь?' Не предлагай услуги, просто слушай."
+# ======================================================
+# START
+# ======================================================
 
-    elif session["stage"] == "gathering_info":
-        if missing:
-            next_field = missing[0]
-            if next_field == "имя":
-                system_extra = known_info_str + "Вежливо спроси имя клиента, если оно ещё неизвестно. Только вопрос."
-            elif next_field == "название компании":
-                system_extra = known_info_str + "Спроси название компании клиента. Будь краток."
-            elif next_field == "сфера деятельности":
-                system_extra = known_info_str + "Спроси, в какой сфере работает компания."
-        else:
-            session["stage"] = "collecting_pain"
-            system_extra = known_info_str + "Все данные собраны. Выясни потребность клиента."
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    elif session["stage"] == "collecting_pain":
-        if not collected.get("pain"):
-            system_extra = known_info_str + "Ты сейчас выясняешь проблему клиента. Задай уточняющий вопрос о его бизнесе, чтобы понять его потребности. Не предлагай консультацию, просто слушай."
-        else:
-            session["stage"] = "offer_consultation"
-            system_extra = known_info_str + "Ты уже выяснил проблему клиента. Предложи бесплатную консультацию и попроси номер телефона и удобное время. Можешь быть вежливым, но не задавай других вопросов."
+    user_id = update.effective_user.id
 
-    elif session["stage"] == "offer_consultation":
-        system_extra = known_info_str + "Предложи бесплатную консультацию и попроси номер телефона и удобное время. Не пиши ничего лишнего."
+    CLIENT_ID = context.application.bot_data.get("client_id")
+    if not CLIENT_ID:
+        raise ValueError("client_id not found in bot_data")
 
-    elif session["stage"] == "completed":
-        system_extra = known_info_str + "Диалог завершён. Отвечай на вопросы клиента, используя известные данные. Не предлагай больше консультаций, но будь дружелюбен."
+    # 🔥 Динамически загружаем клиента
+    CLIENT_DATA = await load_client(CLIENT_ID)
 
-    # Формируем context_info
-    context_info = {
-        "stage": session["stage"],
-        "greeted": session.get("greeted", False),
-        "collected": collected
+    session = {
+        "conversation": [],
+        "collected": LEAD_TEMPLATE.copy(),
+        "lead_saved": False,
+        "contact_id": None,
+        "lead_id": None,
     }
 
-    logger.info(f"stage={session['stage']}, missing={missing}, known={known_info_parts}")
-    logger.info(f"system_extra: {system_extra}")
+    await save_session(user_id, CLIENT_ID, session)
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            payload = {
-                "user_id": USER_ID,
-                "message": user_message,
-                "use_rag": False,  # RAG отключён для отладки, потом можно включить
-                "system_extra": system_extra,
-                "context_info": json.dumps(context_info, ensure_ascii=False)
-            }
-            response = await client.post(
-                API_URL,
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
-            response.raise_for_status()
-            data = response.json()
-            reply = data.get("reply", "⚠️ Не удалось получить ответ.")
-    except Exception as e:
-        logger.error(f"Ошибка вызова API: {e}", exc_info=True)
-        reply = f"❌ Ошибка: {e}"
+    company_name = CLIENT_DATA.get("name") or "компания"
+    bot_name = CLIENT_DATA.get("bot_name") or "AI-ассистент"
 
-    if not session["greeted"]:
-        session["greeted"] = True
+    welcome_message = f"""
+Здравствуйте.
 
-    # Исправлено: session["stage"] вместо session["status"]
-    if "оставьте ваш номер" in reply and session["stage"] not in ("offer_consultation", "completed"):
-        session["stage"] = "offer_consultation"
+{company_name} | {bot_name}
 
-    await update.message.reply_text(reply)
+Опишите ваш запрос.
+"""
 
-def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("🤖 Telegram Bot запущен и готов к работе!")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+    await update.message.reply_text(welcome_message.strip())

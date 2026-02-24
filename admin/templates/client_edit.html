@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if client %}Редактирование клиента{% else %}Новый клиент{% endif %}</h1>
+<form method="POST">
+  <div class="mb-3">
+    <label for="name" class="form-label">Название компании *</label>
+    <input type="text" class="form-control" id="name" name="name" required value="{{ client.name if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="contact_name" class="form-label">Контактное лицо</label>
+    <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ client.contact_name if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="contact_email" class="form-label">Email</label>
+    <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ client.contact_email if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="contact_phone" class="form-label">Телефон</label>
+    <input type="text" class="form-control" id="contact_phone" name="contact_phone" value="{{ client.contact_phone if client else '' }}">
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if client and client.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="is_active">Активен</label>
+  </div>
+  <div class="mb-3">
+    <label for="bot_token" class="form-label">Токен бота</label>
+    <input type="text" class="form-control" id="bot_token" name="bot_token" value="{{ client.bot_token if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="crm_settings" class="form-label">Настройки CRM (JSON)</label>
+    <textarea class="form-control" id="crm_settings" name="crm_settings" rows="3">{{ client.crm_settings if client else '{}' }}</textarea>
+  </div>
+
+  <h3 class="mt-4">Подписка</h3>
+  <div class="mb-3">
+    <label for="plan_id" class="form-label">Тарифный план *</label>
+    <select class="form-select" id="plan_id" name="plan_id" required>
+      <option value="">-- Выберите тариф --</option>
+      {% for plan in plans %}
+      <option value="{{ plan.id }}" {% if current_sub and current_sub.plan_id == plan.id %}selected{% endif %}>
+        {{ plan.name }} ({{ plan.price }} ₽/мес)
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="start_date" class="form-label">Дата начала</label>
+    <input type="datetime-local" class="form-control" id="start_date" name="start_date" value="{{ current_sub.start_date[:16] if current_sub and current_sub.start_date else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="end_date" class="form-label">Дата окончания (если ограничена)</label>
+    <input type="datetime-local" class="form-control" id="end_date" name="end_date" value="{{ current_sub.end_date[:16] if current_sub and current_sub.end_date else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="status" class="form-label">Статус подписки</label>
+    <select class="form-select" id="status" name="status">
+      <option value="active" {% if current_sub and current_sub.status == 'active' %}selected{% endif %}>Активна</option>
+      <option value="paused" {% if current_sub and current_sub.status == 'paused' %}selected{% endif %}>Приостановлена</option>
+      <option value="canceled" {% if current_sub and current_sub.status == 'canceled' %}selected{% endif %}>Отменена</option>
+      <option value="expired" {% if current_sub and current_sub.status == 'expired' %}selected{% endif %}>Истекла</option>
+    </select>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="auto_renew" name="auto_renew" {% if current_sub and current_sub.auto_renew %}checked{% endif %}>
+    <label class="form-check-label" for="auto_renew">Автопродление</label>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+  <a href="{{ url_for('clients') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

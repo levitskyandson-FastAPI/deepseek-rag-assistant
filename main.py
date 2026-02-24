@@ -9,76 +9,103 @@ from routers.chat import router as chat_router
 from routers.documents import router as documents_router
 from core.logger import setup_logger
 from config import settings
-from telegram_bot import start, handle_message  # импортируем функции бота
+from telegram_bot import start, handle_message
+from services.supabase import supabase
+
 
 logger = setup_logger(settings.log_level)
 
-# --- Telegram Bot setup ---
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TELEGRAM_TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN not set in environment variables")
+# ======================================================
+# MULTI BOT SUPPORT (SaaS READY)
+# ======================================================
 
-telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+telegram_apps = {}
 
-# --- Lifespan для установки/удаления webhook ---
+clients_resp = (
+    supabase.table("clients")
+    .select("*")
+    .eq("is_active", True)
+    .execute()
+)
+
+clients = clients_resp.data or []
+
+if not clients:
+    logger.warning("⚠️ Нет активных клиентов в таблице clients")
+
+for c in clients:
+    token = c.get("bot_token")
+    client_id = c.get("id")
+
+    if not token or not client_id:
+        logger.warning("⚠️ Пропуск клиента: нет bot_token или id")
+        continue
+
+    tg_app = Application.builder().token(token).build()
+    tg_app.bot_data["client_id"] = client_id
+
+    tg_app.add_handler(CommandHandler("start", start))
+    tg_app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
+    )
+
+    telegram_apps[token] = tg_app
+
+logger.info(f"🤖 Загружено Telegram ботов из Supabase: {len(telegram_apps)}")
+
+
+# ======================================================
+# LIFESPAN
+# ======================================================
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("🚀 Запуск DeepSeek RAG Assistant...")
     logger.info(f"📚 Модель чата: {settings.chat_model}")
-    logger.info(f"🧠 Режим RAG: активен")
+    logger.info("🧠 Режим RAG: активен")
+    logger.info(f"🏢 SaaS клиентов: {len(telegram_apps)}")
 
-    # Инициализируем Telegram Application с обработкой ошибок
-    try:
-        await telegram_app.initialize()
-        logger.info("✅ Telegram Application инициализирован")
-    except Exception as e:
-        logger.error(f"❌ Критическая ошибка инициализации Telegram: {e}", exc_info=True)
-        # Не вызываем raise, чтобы сервис продолжил работу без бота (или можно raise, если хотим остановить)
-        # raise
+    webhook_base = os.getenv("WEBHOOK_URL_BASE")
 
-    # Устанавливаем webhook с отбрасыванием накопленных обновлений
-    webhook_url = os.getenv("WEBHOOK_URL")
-    if not webhook_url:
-        logger.error("WEBHOOK_URL not set. Bot will not receive updates.")
+    if not webhook_base:
+        logger.error("❌ WEBHOOK_URL_BASE not set")
     else:
-        try:
-            await telegram_app.bot.set_webhook(url=webhook_url, drop_pending_updates=True)
-            logger.info(f"✅ Webhook установлен на {webhook_url} (старые обновления отброшены)")
-        except Exception as e:
-            logger.error(f"❌ Ошибка установки webhook: {e}", exc_info=True)
+        for token, tg_app in telegram_apps.items():
+            try:
+                await tg_app.initialize()
 
-    # Выводим все зарегистрированные маршруты для отладки
-    logger.info("📋 Зарегистрированные маршруты:")
-    for route in app.routes:
-        logger.info(f"  {route.path}")
+                await tg_app.bot.set_webhook(
+                    url=f"{webhook_base}/webhook/{token}",
+                    drop_pending_updates=True,
+                )
+
+                logger.info(
+                    f"✅ Webhook установлен для клиента {tg_app.bot_data.get('client_id')} ({token[:8]}...)"
+                )
+
+            except Exception as e:
+                logger.error(f"❌ Ошибка webhook для {token[:8]}: {e}")
 
     yield
 
-    # Shutdown
-    logger.info("🛑 Начинаем корректное завершение...")
-    try:
-        await telegram_app.bot.delete_webhook()
-        logger.info("✅ Webhook удалён")
-    except Exception as e:
-        logger.error(f"❌ Ошибка удаления webhook: {e}")
-    try:
-        await telegram_app.shutdown()
-        logger.info("✅ Telegram app shutdown ok")
-    except Exception as e:
-        logger.error(f"❌ Ошибка shutdown: {e}")
-    logger.info("🛑 Остановка приложения...")
+    logger.info("🛑 Завершение работы...")
 
-# --- FastAPI app ---
+    for token, tg_app in telegram_apps.items():
+        try:
+            await tg_app.bot.delete_webhook()
+            await tg_app.shutdown()
+        except Exception as e:
+            logger.error(f"Ошибка shutdown для {token[:8]}: {e}")
+
+
+# ======================================================
+# FASTAPI
+# ======================================================
+
 app = FastAPI(
-    title="Levitsky & Son AI Solutions — DeepSeek RAG",
-    description="Корпоративный ИИ-ассистент на базе DeepSeek с RAG и Telegram webhook",
-    version="1.0.0",
+    title="Levitsky & Son AI Solutions — DeepSeek RAG SaaS",
+    version="3.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
 )
 
 app.add_middleware(
@@ -89,34 +116,49 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключаем роутеры FastAPI
 app.include_router(chat_router)
 app.include_router(documents_router)
 
-# Эндпоинт для получения обновлений от Telegram (с логированием)
-@app.post("/webhook")
-async def webhook(request: Request):
-    logger.info("🔥🔥🔥 WEBHOOK ВЫЗВАН 🔥🔥🔥")
+
+# ======================================================
+# TELEGRAM WEBHOOK ROUTING (MULTI-TENANT)
+# ======================================================
+
+@app.post("/webhook/{token}")
+async def webhook(token: str, request: Request):
+    if token not in telegram_apps:
+        logger.warning("❌ Unknown bot token in webhook")
+        return {"ok": False}
+
     try:
         json_data = await request.json()
-        logger.info(f"📦 Данные обновления: {json_data}")
-        update = Update.de_json(json_data, telegram_app.bot)
-        await telegram_app.process_update(update)
+        tg_app = telegram_apps[token]
+
+        update = Update.de_json(json_data, tg_app.bot)
+        await tg_app.process_update(update)
+
         return {"ok": True}
+
     except Exception as e:
-        logger.error(f"❌ Ошибка в webhook: {e}", exc_info=True)
+        logger.error(f"Webhook error: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}
 
-# Корневой эндпоинт для проверки
+
+# ======================================================
+# SYSTEM ENDPOINTS
+# ======================================================
+
 @app.get("/")
 async def root():
     return {
-        "service": "DeepSeek RAG Assistant",
-        "status": "operational",
-        "agency": "Levitsky & Son AI Solutions"
+        "status": "ok",
+        "bots_loaded": len(telegram_apps),
     }
 
-# Эндпоинт для health check
+
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "model": settings.chat_model}
+    return {
+        "status": "healthy",
+        "model": settings.chat_model,
+    }

@@ -44,3 +44,41 @@
 2026-02-12 20:29:21.025 | INFO     | main:lifespan:15 - 🚀 Запуск DeepSeek RAG Assistant...
 2026-02-12 20:29:21.025 | INFO     | main:lifespan:16 - 📚 Модель чата: deepseek-chat
 2026-02-12 20:29:21.025 | INFO     | main:lifespan:17 - 🧠 Режим RAG: активен
+2026-02-24 18:48:41.664 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 18:48:41.667 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 18:48:41.667 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 18:48:41.667 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 18:50:45.617 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 18:50:45.621 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 18:50:45.621 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 18:50:45.621 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 18:52:52.430 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 18:52:52.433 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 18:52:52.433 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 18:52:52.433 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 18:57:42.207 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 18:57:42.211 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 18:57:42.211 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 18:57:42.211 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 18:59:20.665 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 18:59:20.668 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 18:59:20.668 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 18:59:20.668 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 19:04:54.049 | INFO     | main:<module>:52 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 19:04:54.053 | INFO     | main:lifespan:60 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 19:04:54.053 | INFO     | main:lifespan:61 - 📚 Модель чата: deepseek-chat
+2026-02-24 19:04:54.053 | INFO     | main:lifespan:62 - 🧠 Режим RAG: активен
+2026-02-24 19:12:24.112 | INFO     | main:<module>:54 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 19:12:24.115 | INFO     | main:lifespan:63 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 19:12:24.115 | INFO     | main:lifespan:64 - 📚 Модель чата: deepseek-chat
+2026-02-24 19:12:24.115 | INFO     | main:lifespan:65 - 🧠 Режим RAG: активен
+2026-02-24 19:12:24.115 | INFO     | main:lifespan:66 - 🏢 SaaS клиентов: 2
+2026-02-24 19:12:24.115 | ERROR    | main:lifespan:71 - ❌ WEBHOOK_URL_BASE not set
+2026-02-24 19:12:25.935 | INFO     | main:lifespan:91 - 🛑 Завершение работы...
+2026-02-24 19:17:19.581 | INFO     | main:<module>:54 - 🤖 Загружено Telegram ботов из Supabase: 2
+2026-02-24 19:17:19.583 | INFO     | main:lifespan:63 - 🚀 Запуск DeepSeek RAG Assistant...
+2026-02-24 19:17:19.583 | INFO     | main:lifespan:64 - 📚 Модель чата: deepseek-chat
+2026-02-24 19:17:19.583 | INFO     | main:lifespan:65 - 🧠 Режим RAG: активен
+2026-02-24 19:17:19.583 | INFO     | main:lifespan:66 - 🏢 SaaS клиентов: 2
+2026-02-24 19:17:19.583 | ERROR    | main:lifespan:71 - ❌ WEBHOOK_URL_BASE not set
+2026-02-24 19:17:21.506 | INFO     | main:lifespan:91 - 🛑 Завершение работы...

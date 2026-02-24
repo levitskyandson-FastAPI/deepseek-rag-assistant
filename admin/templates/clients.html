@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Клиенты</h1>
+<a href="{{ url_for('client_add') }}" class="btn btn-primary mb-3">Добавить клиента</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Контакты</th>
+            <th>Активен</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for client in clients %}
+        <tr>
+            <td>{{ client.name }}</td>
+            <td>{{ client.contact_email }}<br>{{ client.contact_phone }}</td>
+            <td>{{ 'Да' if client.is_active else 'Нет' }}</td>
+            <td><a href="{{ url_for('client_edit', client_id=client.id) }}" class="btn btn-sm btn-warning">Ред.</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
