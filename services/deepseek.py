@@ -49,28 +49,7 @@ async def ask_with_rag(
     system_extra: Optional[str] = None,
     context_info: Optional[str] = None
 ) -> Tuple[str, List[str]]:
-    sources = []
-    base_system = "Ты — корпоративный ИИ-ассистент агентства Levitsky & Son AI Solutions."
-
-    # --- НОВЫЙ БЛОК: формируем сводку из context_info ---
-    context_summary = ""
-    if context_info:
-        try:
-            ctx = json.loads(context_info)
-            collected = ctx.get("collected", {})
-            if collected:
-                parts = []
-                if collected.get("name"):
-                    parts.append(f"имя клиента: {collected['name']}")
-                if collected.get("company"):
-                    parts.append(f"компания: {collected['company']}")
-                if collected.get("preferred_date"):
-                    parts.append(f"договорились о консультации на {collected['preferred_date']}")
-                if parts:
-                    context_summary = "Краткая информация о диалоге: " + ", ".join(parts) + "."
-        except Exception as e:
-            logger.error(f"Ошибка парсинга context_info: {e}")
-    # -----------------------------------------------------
+    return f"LLM WORKS: {user_message}", []
 
     # Инструкция о приветствии
     greeted = False
