@@ -18,7 +18,26 @@ async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int
             }
         )
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    data = resp.json()
+    if "choices" not in data:
+        logger.error(f"DeepSeek unexpected response: {data}")
+        return "Произошла ошибка обработки ответа модели."
+    choices = data.get("choices", [])
+    if not choices:
+        logger.error(f"DeepSeek empty choices: {data}")
+        return "Модель вернула пустой ответ."
+
+    first = choices[0]
+
+    # 🔥 Безопасное извлечение
+    if "message" in first and "content" in first["message"]:
+        return first["message"]["content"]
+
+    if "text" in first:
+        return first["text"]
+
+    logger.error(f"DeepSeek unknown structure: {data}")
+    return "Произошла ошибка формата ответа модели."
 
 async def ask_with_rag(
     user_message: str,
