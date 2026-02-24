@@ -6,7 +6,6 @@ from services.rag import retrieve_relevant_docs
 from core.logger import logger
 
 async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int = 2000) -> str:
-    logger.info("ASK_DEEPSEEK CALLED")
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.deepseek_api_url}/chat/completions",
@@ -24,23 +23,25 @@ async def ask_deepseek(messages: list, temperature: float = 0.1, max_tokens: int
 
     data = resp.json()
 
-    # Логируем сырой ответ
-    logger.info(f"DeepSeek RAW response: {data}")
+    logger.info(f"DeepSeek RAW: {data}")
 
-    # Защитный парсинг
-    if "choices" in data and len(data["choices"]) > 0:
-        choice = data["choices"][0]
+    # 🔒 безопасный разбор
+    if isinstance(data, dict):
+        choices = data.get("choices")
+        if choices and isinstance(choices, list):
+            first = choices[0]
 
-        # формат OpenAI-совместимый
-        if "message" in choice and "content" in choice["message"]:
-            return choice["message"]["content"]
+            # OpenAI-style
+            if "message" in first:
+                content = first["message"].get("content")
+                if content:
+                    return content
 
-        # иногда DeepSeek возвращает text
-        if "text" in choice:
-            logger.info(f"DEEPSEEK RESPONSE STRUCTURE: {data}")
-            return choice["text"]
+            # sometimes DeepSeek returns text
+            if "text" in first:
+                return first["text"]
 
-    raise ValueError(f"Unexpected DeepSeek response format: {data}")
+    raise ValueError(f"Unexpected DeepSeek response: {data}")
 
 async def ask_with_rag(
     user_message: str,
