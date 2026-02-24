@@ -670,6 +670,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ======================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    print("START HANDLER TRIGGERED")
 
     user_id = update.effective_user.id
 
