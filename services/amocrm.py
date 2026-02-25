@@ -132,7 +132,7 @@ class AmoCRM:
         if contact_id:
 
             payload = {
-                "name": name,
+                
                 "custom_fields_values": custom_fields
             }
 
