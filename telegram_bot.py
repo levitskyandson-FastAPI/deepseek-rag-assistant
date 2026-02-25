@@ -659,17 +659,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
             # ======================================================
             confirmation_text = f"""
-            Консультация зафиксирована ✅
-
-            Вот данные, которые мы зафиксировали:
-
+            Договорились 👍
+            
+            Зафиксировал консультацию на {session["collected"].get("preferred_date")}.
             Имя: {session["collected"].get("name")}
-            Компания: {session["collected"].get("company")}
-            Сфера: {session["collected"].get("industry")}
-            Телефон: {session["collected"].get("phone")}
-            Дата созвона: {session["collected"].get("preferred_date")}
-
-            Если потребуется что-то изменить — просто напишите.
+            Контактный номер: {session["collected"].get("phone")}
+            Если нужно будет изменить время или телефон — просто напишите сюда, всё оперативно поправим.
+            
+            До связи.
             """
             try:
                 await update.message.reply_text(confirmation_text.strip())
