@@ -28,6 +28,7 @@ from services.amocrm import AmoCRM
 from services.supabase import supabase
 from core.logger import logger
 
+
 # ======================================================
 # INIT
 # ======================================================
@@ -48,14 +49,15 @@ LEAD_TEMPLATE = {
     "name": None,
     "company": None,
     "industry": None,
-    "problem": None,  # боль/задача клиента
+    "problem": None,          # боль/задача клиента
     "current_process": None,  # как сейчас
-    "volume": None,  # объём
-    "goal": None,  # цель/ожидаемый результат
-    "budget": None,  # бюджет
-    "position": None,  # ЛПР
-    "phone": None,  # телефон
-    "preferred_date": None,  # когда удобно созвониться
+    "volume": None,           # объём
+    "goal": None,             # цель/ожидаемый результат
+    "budget": None,           # бюджет
+    "position": None,   # ЛПР
+    
+    "phone": None,            # телефон
+    "preferred_date": None,   # когда удобно созвониться
 }
 
 # Обязательные поля для отправки лида (SaaS, универсально)
@@ -68,6 +70,7 @@ REQUIRED_FIELDS = [
     "volume",
     "goal",
     "budget",
+    
     "phone",
     "preferred_date",
     "position",
@@ -181,10 +184,13 @@ def build_lead_summary(collected: dict) -> str:
 Телефон: {collected.get('phone')}
 Созвон: {collected.get('preferred_date')}
 """
-
-
 async def load_client(client_id: str):
-    res = supabase.table("clients").select("*").eq("id", client_id).execute()
+    res = (
+        supabase.table("clients")
+        .select("*")
+        .eq("id", client_id)
+        .execute()
+    )
 
     if not res.data:
         raise ValueError("Client not found")
@@ -196,11 +202,9 @@ async def load_client(client_id: str):
 
     return client
 
-
 # ======================================================
 # SESSIONS
 # ======================================================
-
 
 async def load_session(user_id: int, client_id: str):
     res = (
@@ -248,12 +252,10 @@ async def save_session(user_id: int, client_id: str, session: dict):
     except Exception as e:
         logger.error(f"Ошибка сохранения сессии в Supabase: {e}", exc_info=True)
         # Не пробрасываем исключение дальше, чтобы бот не падал
-
-
+    
 # ======================================================
 # CONVERSATION ENGINE (LLM)
 # ======================================================
-
 
 def build_system_prompt(history: str, collected: dict) -> str:
     today_str = datetime.now(MSK).strftime("%d.%m.%Y")
@@ -383,7 +385,6 @@ def build_system_prompt(history: str, collected: dict) -> str:
 {json.dumps(collected, ensure_ascii=False)}
 """
 
-
 def build_after_handoff_prompt(history: str, collected: dict) -> str:
     return f"""
 Ты — AI-ассистент компании.
@@ -424,11 +425,9 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 {history}
 """
 
-
 # ======================================================
 # CRM ADAPTER
 # ======================================================
-
 
 async def notify_manager(context, lead: dict, manager_chat_id: str | None):
     if not manager_chat_id:
@@ -437,233 +436,245 @@ async def notify_manager(context, lead: dict, manager_chat_id: str | None):
 
     msg = "🔥 Новый лид\n\n" + build_lead_summary(lead)
 
-    await context.bot.send_message(
-        chat_id=manager_chat_id,
-        text=msg,
-    )
+    try:
+        await context.bot.send_message(
+            chat_id=manager_chat_id,
+            text=msg,
+        )
+    except Exception as e:
+        logger.error(f"Ошибка отправки уведомления менеджеру: {e}")
 
 
 # ======================================================
 # MAIN HANDLER
 # ======================================================
 
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    CLIENT_ID = context.application.bot_data.get("client_id")
-
-    # Проверка наличия client_id
-    if not CLIENT_ID:
-        logger.error("client_id отсутствует в bot_data")
-        await update.message.reply_text("Ошибка конфигурации бота.")
-        return
-
-    # Загрузка клиента с обработкой ошибок
     try:
-        CLIENT_DATA = await load_client(CLIENT_ID)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки клиента {CLIENT_ID}: {e}")
-        await update.message.reply_text("Технический сбой, попробуйте позже.")
-        return
+        user_id = update.effective_user.id
+        CLIENT_ID = context.application.bot_data.get("client_id")
+        
+        # Проверка наличия client_id
+        if not CLIENT_ID:
+            logger.error("client_id отсутствует в bot_data")
+            await update.message.reply_text("Ошибка конфигурации бота.")
+            return
 
-    # Загрузка настроек клиента
-    crm_settings = CLIENT_DATA.get("crm_settings") or {}
-    if isinstance(crm_settings, str):
+        # Загрузка клиента с обработкой ошибок
         try:
-            crm_settings = json.loads(crm_settings)
-        except:
-            crm_settings = {}
-    MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get(
-        "manager_chat_id"
-    )
-    AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
-
-    crm = None
-    if AMO_ACCOUNT_KEY:
-        try:
-            crm = AmoCRM(AMO_ACCOUNT_KEY)
+            CLIENT_DATA = await load_client(CLIENT_ID)
         except Exception as e:
-            logger.exception(e)
+            logger.error(f"Ошибка загрузки клиента {CLIENT_ID}: {e}")
+            await update.message.reply_text("Технический сбой, попробуйте позже.")
+            return
 
-    text = update.message.text or ""
+        # Загрузка настроек клиента
+        crm_settings = CLIENT_DATA.get("crm_settings") or {}
+        if isinstance(crm_settings, str):
+            try:
+                crm_settings = json.loads(crm_settings)
+            except:
+                crm_settings = {}
+        MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get("manager_chat_id")
+        AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
 
-    # Загрузка сессии с обработкой ошибок
-    try:
-        session = await load_session(user_id, CLIENT_ID)
-    except Exception as e:
-        logger.error(f"Ошибка загрузки сессии: {e}")
-        await update.message.reply_text(
-            "Не удалось загрузить диалог, попробуйте /start."
+        crm = None
+        if AMO_ACCOUNT_KEY:
+            try:
+                crm = AmoCRM(AMO_ACCOUNT_KEY)
+            except Exception as e:
+                logger.exception(e)
+
+        text = update.message.text or ""
+
+        # Загрузка сессии с обработкой ошибок
+        try:
+            session = await load_session(user_id, CLIENT_ID)
+        except Exception as e:
+            logger.error(f"Ошибка загрузки сессии: {e}")
+            await update.message.reply_text("Не удалось загрузить диалог, попробуйте /start.")
+            return
+
+        session["conversation"].append({"role": "user", "content": text})
+        
+
+        # ======================================================
+        # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
+        # ======================================================
+        old_phone = session["collected"].get("phone")
+        old_date = session["collected"].get("preferred_date")
+
+        phone_regex, preferred_date_regex = extract_phone_and_date(text, old_date)
+
+        if phone_regex:
+            session["collected"]["phone"] = phone_regex
+        if preferred_date_regex:
+            session["collected"]["preferred_date"] = preferred_date_regex
+
+        # ======================================================
+        # 2️⃣ ПОДГОТОВКА ПРОМПТА И ВЫЗОВ LLM
+        # ======================================================
+        history_str = "\n".join(
+            f"{m['role']}: {m['content']}"
+            for m in session["conversation"][-30:]
         )
-        return
 
-    session["conversation"].append({"role": "user", "content": text})
+        if session.get("lead_saved"):
+            system_prompt = build_after_handoff_prompt(history_str, session["collected"])
+        else:
+            system_prompt = build_system_prompt(history_str, session["collected"])
 
-    # ======================================================
-    # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
-    # ======================================================
-    old_phone = session["collected"].get("phone")
-    old_date = session["collected"].get("preferred_date")
-
-    phone_regex, preferred_date_regex = extract_phone_and_date(text, old_date)
-
-    if phone_regex:
-        session["collected"]["phone"] = phone_regex
-    if preferred_date_regex:
-        session["collected"]["preferred_date"] = preferred_date_regex
-
-    # ======================================================
-    # 2️⃣ ПОДГОТОВКА ПРОМПТА И ВЫЗОВ LLM
-    # ======================================================
-    history_str = "\n".join(
-        f"{m['role']}: {m['content']}" for m in session["conversation"][-30:]
-    )
-
-    if session.get("lead_saved"):
-        system_prompt = build_after_handoff_prompt(history_str, session["collected"])
-    else:
-        system_prompt = build_system_prompt(history_str, session["collected"])
-
-    try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.post(
-                API_URL,
-                json={
-                    "user_id": CLIENT_ID,
-                    "message": text,
-                    "system_extra": system_prompt,
-                    "use_rag": True,
-                    "context_info": json.dumps(
-                        {"client_id": CLIENT_ID, "source": "telegram"},
-                        ensure_ascii=False,
-                    ),
-                },
-            )
-
-        data = response.json()
-        reply = (data.get("reply") or "").strip()
-
-        # Применяем JSON-патч от LLM
-        patch = extract_patch(reply)
-        reply = JSON_RE.sub("", reply).strip()  # убираем JSON из ответа пользователю
-        if patch:
-            apply_patch(session["collected"], patch)
-
-    except Exception as e:
-        logger.error(f"LLM ERROR: {e}")
-        reply = "Произошёл сбой. Повторите запрос."
-
-    # ======================================================
-    # 3️⃣ ОПРЕДЕЛЯЕМ ИЗМЕНЕНИЯ (сравниваем с исходными old_*)
-    # ======================================================
-    new_phone = session["collected"].get("phone")
-    new_date = session["collected"].get("preferred_date")
-
-    phone_changed = new_phone and new_phone != old_phone
-    date_changed = new_date and new_date != old_date
-
-    # ======================================================
-    # 4️⃣ ОБНОВЛЕНИЕ CRM (если лид уже создан)
-    # ======================================================
-    if session.get("lead_saved") and crm:
         try:
-            if phone_changed and session.get("contact_id"):
-                crm.update_contact_phone(session["contact_id"], new_phone)
-                logger.info("✅ Phone updated in AmoCRM")
-                # Подтверждение пользователю
-                await update.message.reply_text(
-                    f"✅ Телефон изменён на **{new_phone}**."
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                response = await client.post(
+                    API_URL,
+                    json={
+                        "user_id": CLIENT_ID,
+                        "message": text,
+                        "system_extra": system_prompt,
+                        "use_rag": True,
+                        "context_info": json.dumps(
+                            {"client_id": CLIENT_ID, "source": "telegram"},
+                            ensure_ascii=False,
+                        ),
+                    },
                 )
 
-            if date_changed and session.get("lead_id"):
-                crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
-                logger.info("✅ Meeting time updated in AmoCRM")
-                # Подтверждение пользователю
-                await update.message.reply_text(
-                    f"✅ Дата созвона изменена на **{new_date}**."
-                )
+            data = response.json()
+            reply = (data.get("reply") or "").strip()
+
+            # Применяем JSON-патч от LLM
+            patch = extract_patch(reply)
+            reply = JSON_RE.sub("", reply).strip()  # убираем JSON из ответа пользователю
+            if patch:
+                apply_patch(session["collected"], patch)
+
         except Exception as e:
-            logger.error("AmoCRM update error")
-            logger.exception(e)
+            logger.error(f"LLM ERROR: {e}")
+            reply = "Произошёл сбой. Повторите запрос."
 
-        # Уведомляем менеджера об изменениях (только если что-то изменилось)
-        if phone_changed or date_changed:
+        # ======================================================
+        # 3️⃣ ОПРЕДЕЛЯЕМ ИЗМЕНЕНИЯ (сравниваем с исходными old_*)
+        # ======================================================
+        new_phone = session["collected"].get("phone")
+        new_date = session["collected"].get("preferred_date")
+
+        phone_changed = new_phone and new_phone != old_phone
+        date_changed = new_date and new_date != old_date
+
+        
+        # ======================================================
+        # 4️⃣ ОБНОВЛЕНИЕ CRM (если лид уже создан)
+        # ======================================================
+        if session.get("lead_saved") and crm:
+            try:
+                if phone_changed and session.get("contact_id"):
+                    crm.update_contact_phone(session["contact_id"], new_phone)
+                    logger.info("✅ Phone updated in AmoCRM")
+                    # Подтверждение пользователю
+                    await update.message.reply_text(f"✅ Телефон изменён на **{new_phone}**.")
+
+                if date_changed and session.get("lead_id"):
+                    crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
+                    logger.info("✅ Meeting time updated in AmoCRM")
+                    # Подтверждение пользователю
+                    await update.message.reply_text(f"✅ Дата созвона изменена на **{new_date}**.")
+            except Exception as e:
+                logger.error("AmoCRM update error")
+                logger.exception(e)
+
+            # Уведомляем менеджера об изменениях (только если что-то изменилось)
+            if phone_changed or date_changed:
+                await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+
+        print("COLLECTED:", session["collected"])
+        print("MISSING:", missing_required(session["collected"]))
+
+        # ======================================================
+        # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
+        # ======================================================
+        if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
+            # Сохраняем в базу данных
+            try:
+                await save_lead(
+                    telegram_user_id=user_id,
+                    phone=session["collected"].get("phone"),
+                    name=session["collected"].get("name"),
+                    company=session["collected"].get("company"),
+                    industry=session["collected"].get("industry"),
+                    pain=session["collected"].get("problem"),
+                    goal=session["collected"].get("goal"),
+                    preferred_date=session["collected"].get("preferred_date"),
+                    extra_data={**session["collected"], "source": "telegram"},
+                )
+            except Exception as e:
+                logger.error(f"save_lead error: {e}")
+
+            # Создаём лид в AmoCRM
+            if crm:
+                try:
+                    amo_ids = crm.create_lead(
+                        {
+                            "name": session["collected"].get("name"),
+                            "phone": session["collected"].get("phone"),
+                            "problem": session["collected"].get("problem"),
+                            "goal": session["collected"].get("goal"),
+                            "volume": session["collected"].get("volume"),
+                            "meeting_time": session["collected"].get("preferred_date"),
+                            "sphere": session["collected"].get("industry"),
+                            "budget": session["collected"].get("budget"),
+                            "position": session["collected"].get("position"),
+                            "company": session["collected"].get("company"),
+                        }
+                    )
+                    session["contact_id"] = amo_ids["contact_id"]
+                    session["lead_id"] = amo_ids["lead_id"]
+                except Exception as e:
+                    logger.error("AMO CRM ERROR:", exc_info=True)
+
+            # Уведомляем менеджера (ОДИН РАЗ)
             await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
-    print("COLLECTED:", session["collected"])
-    print("MISSING:", missing_required(session["collected"]))
+            # Помечаем лид как сохранённый
+            session["lead_saved"] = True
 
-    # ======================================================
-    # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
-    # ======================================================
-    if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
-        # Сохраняем в базу данных
-        try:
-            await save_lead(
-                telegram_user_id=user_id,
-                phone=session["collected"].get("phone"),
-                name=session["collected"].get("name"),
-                company=session["collected"].get("company"),
-                industry=session["collected"].get("industry"),
-                pain=session["collected"].get("problem"),
-                goal=session["collected"].get("goal"),
-                preferred_date=session["collected"].get("preferred_date"),
-                extra_data={**session["collected"], "source": "telegram"},
-            )
-        except Exception as e:
-            logger.error(f"save_lead error: {e}")
-
-        # Создаём лид в AmoCRM
-        if crm:
+            # Сохраняем сессию
             try:
-                amo_ids = crm.create_lead(
-                    {
-                        "name": session["collected"].get("name"),
-                        "phone": session["collected"].get("phone"),
-                        "problem": session["collected"].get("problem"),
-                        "goal": session["collected"].get("goal"),
-                        "volume": session["collected"].get("volume"),
-                        "meeting_time": session["collected"].get("preferred_date"),
-                        "sphere": session["collected"].get("industry"),
-                        "budget": session["collected"].get("budget"),
-                        "position": session["collected"].get("position"),
-                        "company": session["collected"].get("company"),
-                    }
-                )
-                session["contact_id"] = amo_ids["contact_id"]
-                session["lead_id"] = amo_ids["lead_id"]
+                await save_session(user_id, CLIENT_ID, session)
             except Exception as e:
-                logger.error("AMO CRM ERROR:", exc_info=True)
+                logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
 
-        # Уведомляем менеджера (ОДИН РАЗ)
-        await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+            # Отправляем пользователю сводку
+            reply_text = build_lead_summary(session["collected"])
+            await update.message.reply_text(reply_text)
+            return
 
-        # Помечаем лид как сохранённый
-        session["lead_saved"] = True
 
-        # Сохраняем сессию
+        # ======================================================
+        # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
+        # ======================================================
+        session["conversation"].append({"role": "assistant", "content": reply})
         try:
             await save_session(user_id, CLIENT_ID, session)
         except Exception as e:
-            logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
+            logger.error(f"Не удалось сохранить сессию после ответа: {e}")
+        try:
+            await update.message.reply_text(reply or "Можете уточнить?")
+        except Exception as e:
+            logger.error(f"Ошибка отправки сообщения пользователю: {e}")
 
-        # Отправляем пользователю сводку
-        reply_text = build_lead_summary(session["collected"])
-        await update.message.reply_text(reply_text)
+    except Exception as e:
+        logger.error(f"💥 CRITICAL ERROR in handle_message: {e}", exc_info=True)
+        try:
+            await update.message.reply_text("Извините, произошла техническая ошибка. Мы уже работаем над ней.")
+        except:
+            pass
         return
-
-    # ======================================================
-    # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
-    # ======================================================
-    session["conversation"].append({"role": "assistant", "content": reply})
-    await save_session(user_id, CLIENT_ID, session)
-    await update.message.reply_text(reply or "Можете уточнить?")
 
 
 # ======================================================
 # START
 # ======================================================
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("START HANDLER TRIGGERED")
