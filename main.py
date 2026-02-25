@@ -74,13 +74,12 @@ async def lifespan(app: FastAPI):
         for token, tg_app in telegram_apps.items():
             try:
                 await tg_app.initialize()
-                
+                await tg_app.start()
+
                 await tg_app.bot.set_webhook(
                     url=f"{webhook_base}/webhook/{token}",
-                    
+                    drop_pending_updates=True
                 )
-
-                
 
                 logger.info(
                     f"✅ Webhook установлен для клиента {tg_app.bot_data.get('client_id')} ({token[:8]}...)"
@@ -96,7 +95,7 @@ async def lifespan(app: FastAPI):
     for token, tg_app in telegram_apps.items():
         try:
             await tg_app.bot.delete_webhook()
-            
+            await tg_app.stop()
             await tg_app.shutdown()
         except Exception as e:
             logger.error(f"Ошибка shutdown для {token[:8]}: {e}")
