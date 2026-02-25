@@ -1,13 +1,13 @@
 from services.supabase import supabase
 from core.logger import logger
 
-async def save_lead(telegram_user_id: int, name: str = None, phone: str = None, 
-                    company: str = None, industry: str = None, 
-                    preferred_date: str = None, pain: str = None, 
+async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
+                    company: str = None, industry: str = None,
+                    preferred_date: str = None, pain: str = None, goal: str = None,
                     extra_data: dict = None):
     try:
         logger.info(f"📥 save_lead вызван: user_id={telegram_user_id}, phone={phone}, name={name}, company={company}")
-        
+
         if not phone:
             logger.warning("❌ Попытка сохранить лид без телефона")
             return None
@@ -26,6 +26,8 @@ async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
             data["industry"] = industry
         if preferred_date:
             data["preferred_date"] = preferred_date
+        if goal:
+            data["goal"] = goal   # добавлено поле goal
 
         logger.info(f"📦 Данные для вставки: {data}")
         result = supabase.table("leads").insert(data).execute()
@@ -33,4 +35,5 @@ async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
         return result.data
     except Exception as e:
         logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
-        raise
+        # Не пробрасываем исключение, чтобы бот не падал
+        return None
