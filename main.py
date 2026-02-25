@@ -151,7 +151,7 @@ async def webhook(token: str, request: Request):
 # SYSTEM ENDPOINTS
 # ======================================================
 
-@app.get("/")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def root():
     return {
         "status": "ok",
