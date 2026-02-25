@@ -429,12 +429,17 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 # CRM ADAPTER
 # ======================================================
 
-async def notify_manager(context, lead: dict, manager_chat_id: str | None):
+async def notify_manager(context, lead: dict, manager_chat_id: str | None, event_type: str = "new"):
     if not manager_chat_id:
         logger.warning("MANAGER_CHAT_ID is None — notify skipped")
         return
 
-    msg = "🔥 Новый лид\n\n" + build_lead_summary(lead)
+    if event_type == "new":
+        header = "🔥 Новый лид"
+    else:
+        header = "✏️ Изменения в лиде"
+
+    msg = header + "\n\n" + build_lead_summary(lead)
 
     try:
         await context.bot.send_message(
@@ -585,7 +590,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Уведомляем менеджера об изменениях (только если что-то изменилось)
             if phone_changed or date_changed:
-                await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+                await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
 
         print("COLLECTED:", session["collected"])
         print("MISSING:", missing_required(session["collected"]))
@@ -633,7 +638,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     logger.error("AMO CRM ERROR:", exc_info=True)
 
             # Уведомляем менеджера (ОДИН РАЗ)
-            await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+            await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="update")
 
             # Помечаем лид как сохранённый
             session["lead_saved"] = True
@@ -643,13 +648,28 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await save_session(user_id, CLIENT_ID, session)
             except Exception as e:
                 logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
+        # ======================================================
+        # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
+        # ======================================================
+            # ======================================================
+        # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
+        # ======================================================
+            confirmation_text = f"""
+        Консультация зафиксирована ✅
 
-            # Отправляем пользователю сводку
-            reply_text = build_lead_summary(session["collected"])
-            await update.message.reply_text(reply_text)
+        Вот данные, которые мы зафиксировали:
+
+        Имя: {session["collected"].get("name")}
+        Компания: {session["collected"].get("company")}
+        Сфера: {session["collected"].get("industry")}
+        Телефон: {session["collected"].get("phone")}
+                Дата созвона: {session["collected"].get("preferred_date")}
+
+        Если потребуется что-то изменить — просто напишите.
+        """
+            await update.message.reply_text(confirmation_text.strip())
             return
-
-
+        
         # ======================================================
         # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
         # ======================================================
