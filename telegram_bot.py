@@ -236,19 +236,23 @@ async def load_session(user_id: int, client_id: str):
 
 
 async def save_session(user_id: int, client_id: str, session: dict):
-    supabase.table("sessions").upsert(
-        {
-            "user_id": user_id,
-            "client_id": client_id,
-            "conversation": json.dumps(session["conversation"], ensure_ascii=False),
-            "collected": json.dumps(session["collected"], ensure_ascii=False),
-            "lead_saved": session["lead_saved"],           
-            "contact_id": session.get("contact_id"),
-            "lead_id": session.get("lead_id"),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        },
-        on_conflict="user_id,client_id",
-    ).execute()
+    try:
+        supabase.table("sessions").upsert(
+            {
+                "user_id": user_id,
+                "client_id": client_id,
+                "conversation": json.dumps(session["conversation"], ensure_ascii=False),
+                "collected": json.dumps(session["collected"], ensure_ascii=False),
+                "lead_saved": session["lead_saved"],
+                "contact_id": session.get("contact_id"),
+                "lead_id": session.get("lead_id"),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            on_conflict="user_id,client_id",
+        ).execute()
+    except Exception as e:
+        logger.error(f"Ошибка сохранения сессии в Supabase: {e}", exc_info=True)
+        # Не пробрасываем исключение дальше, чтобы бот не падал
     
 # ======================================================
 # CONVERSATION ENGINE (LLM)
@@ -446,9 +450,22 @@ async def notify_manager(context, lead: dict, manager_chat_id: str | None):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     CLIENT_ID = context.application.bot_data.get("client_id")
-    CLIENT_DATA = await load_client(CLIENT_ID)
+    
+    # Проверка наличия client_id
+    if not CLIENT_ID:
+        logger.error("client_id отсутствует в bot_data")
+        await update.message.reply_text("Ошибка конфигурации бота.")
+        return
 
-    # --- Загрузка настроек клиента ---
+    # Загрузка клиента с обработкой ошибок
+    try:
+        CLIENT_DATA = await load_client(CLIENT_ID)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки клиента {CLIENT_ID}: {e}")
+        await update.message.reply_text("Технический сбой, попробуйте позже.")
+        return
+
+    # Загрузка настроек клиента
     crm_settings = CLIENT_DATA.get("crm_settings") or {}
     if isinstance(crm_settings, str):
         try:
@@ -465,12 +482,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.exception(e)
 
-    if not CLIENT_ID:
-        raise ValueError("client_id not found in bot_data")
-
     text = update.message.text or ""
-    session = await load_session(user_id, CLIENT_ID)
+
+    # Загрузка сессии с обработкой ошибок
+    try:
+        session = await load_session(user_id, CLIENT_ID)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки сессии: {e}")
+        await update.message.reply_text("Не удалось загрузить диалог, попробуйте /start.")
+        return
+
     session["conversation"].append({"role": "user", "content": text})
+    
 
     # ======================================================
     # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
@@ -599,13 +622,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.error("AMO CRM ERROR:", exc_info=True)
                 # Не роняем бота, лид уже сохранён в БД
 
+        # Уведомляем менеджера о новом лиде
         await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
         session["lead_saved"] = True
-        await save_session(user_id, CLIENT_ID, session)
+
+        # Сохраняем сессию с обработкой ошибок
+        try:
+            await save_session(user_id, CLIENT_ID, session)
+        except Exception as e:
+            logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
 
         reply_text = build_lead_summary(session["collected"])
         await update.message.reply_text(reply_text)
         return
+
 
     # ======================================================
     # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
