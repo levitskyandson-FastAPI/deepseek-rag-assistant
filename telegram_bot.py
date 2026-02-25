@@ -567,14 +567,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if phone_changed and session.get("contact_id"):
                 crm.update_contact_phone(session["contact_id"], new_phone)
                 logger.info("✅ Phone updated in AmoCRM")
+                # Подтверждение пользователю
+                await update.message.reply_text(f"✅ Телефон изменён на **{new_phone}**.")
+
             if date_changed and session.get("lead_id"):
                 crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
                 logger.info("✅ Meeting time updated in AmoCRM")
+                # Подтверждение пользователю
+                await update.message.reply_text(f"✅ Дата созвона изменена на **{new_date}**.")
         except Exception as e:
             logger.error("AmoCRM update error")
             logger.exception(e)
 
-        # Уведомляем менеджера об изменениях
+        # Уведомляем менеджера об изменениях (один раз)
         if phone_changed or date_changed:
             await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
