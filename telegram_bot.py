@@ -595,10 +595,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print("COLLECTED:", session["collected"])
         print("MISSING:", missing_required(session["collected"]))
 
-        # ======================================================
+                # ======================================================
         # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
         # ======================================================
         if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
+            logger.info(">>> HANDOFF: начало передачи лида")
+
             # Сохраняем в базу данных
             try:
                 await save_lead(
@@ -612,8 +614,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     preferred_date=session["collected"].get("preferred_date"),
                     extra_data={**session["collected"], "source": "telegram"},
                 )
+                logger.info(">>> HANDOFF: лид сохранён в БД")
             except Exception as e:
-                logger.error(f"save_lead error: {e}")
+                logger.error(f"HANDOFF: save_lead error: {e}")
 
             # Создаём лид в AmoCRM
             if crm:
@@ -634,11 +637,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
                     session["contact_id"] = amo_ids["contact_id"]
                     session["lead_id"] = amo_ids["lead_id"]
+                    logger.info(">>> HANDOFF: лид создан в AmoCRM")
                 except Exception as e:
-                    logger.error("AMO CRM ERROR:", exc_info=True)
+                    logger.error("HANDOFF: AMO CRM ERROR:", exc_info=True)
 
             # Уведомляем менеджера (ОДИН РАЗ)
-            await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="update")
+            await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
+            logger.info(">>> HANDOFF: менеджер уведомлён")
 
             # Помечаем лид как сохранённый
             session["lead_saved"] = True
@@ -646,28 +651,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Сохраняем сессию
             try:
                 await save_session(user_id, CLIENT_ID, session)
+                logger.info(">>> HANDOFF: сессия сохранена")
             except Exception as e:
-                logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
-        # ======================================================
-        # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
-        # ======================================================
+                logger.error(f"HANDOFF: не удалось сохранить сессию: {e}")
+
             # ======================================================
-        # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
-        # ======================================================
+            # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
+            # ======================================================
             confirmation_text = f"""
-        Консультация зафиксирована ✅
+            Консультация зафиксирована ✅
 
-        Вот данные, которые мы зафиксировали:
+            Вот данные, которые мы зафиксировали:
 
-        Имя: {session["collected"].get("name")}
-        Компания: {session["collected"].get("company")}
-        Сфера: {session["collected"].get("industry")}
-        Телефон: {session["collected"].get("phone")}
-                Дата созвона: {session["collected"].get("preferred_date")}
+            Имя: {session["collected"].get("name")}
+            Компания: {session["collected"].get("company")}
+            Сфера: {session["collected"].get("industry")}
+            Телефон: {session["collected"].get("phone")}
+            Дата созвона: {session["collected"].get("preferred_date")}
 
-        Если потребуется что-то изменить — просто напишите.
-        """
-            await update.message.reply_text(confirmation_text.strip())
+            Если потребуется что-то изменить — просто напишите.
+            """
+            try:
+                await update.message.reply_text(confirmation_text.strip())
+                logger.info(">>> HANDOFF: подтверждение отправлено пользователю")
+            except Exception as e:
+                logger.error(f"HANDOFF: ошибка отправки подтверждения: {e}", exc_info=True)
+
             return
         
         # ======================================================
