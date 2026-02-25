@@ -589,7 +589,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ======================================================
     # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
     # ======================================================
-    if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
+        if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
+        # Сохраняем в базу данных
         try:
             await save_lead(
                 telegram_user_id=user_id,
@@ -605,6 +606,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.error(f"save_lead error: {e}")
 
+        # Создаём лид в AmoCRM
         if crm:
             try:
                 amo_ids = crm.create_lead(
@@ -625,18 +627,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 session["lead_id"] = amo_ids["lead_id"]
             except Exception as e:
                 logger.error("AMO CRM ERROR:", exc_info=True)
-                # Не роняем бота, лид уже сохранён в БД
 
-        # Уведомляем менеджера о новом лиде
+        # Уведомляем менеджера (ОДИН РАЗ)
         await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+
+        # Помечаем лид как сохранённый
         session["lead_saved"] = True
 
-        # Сохраняем сессию с обработкой ошибок
+        # Сохраняем сессию
         try:
             await save_session(user_id, CLIENT_ID, session)
         except Exception as e:
             logger.error(f"Не удалось сохранить сессию при передаче лида: {e}")
 
+        # Отправляем пользователю сводку
         reply_text = build_lead_summary(session["collected"])
         await update.message.reply_text(reply_text)
         return
