@@ -610,7 +610,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # HANDOFF
     # ======================================================
 
-    if not session["lead_saved"] and is_ready_for_handoff(session["collected"]):
+    if not session["lead_saved"]:
 
         try:
             await save_lead(
@@ -655,10 +655,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session["lead_saved"] = True
         await save_session(user_id, CLIENT_ID, session)
 
-        await update.message.reply_text(
-            "Заявка зафиксирована 👍 Менеджер свяжется с вами в указанное время."
-        )
-        return
+        session["lead_saved"] = True
+        await save_session(user_id, CLIENT_ID, session)
+
+        reply_text = build_lead_summary(session["collected"])
+
+        await update.message.reply_text(reply_text)
 
     # ======================================================
     # NORMAL REPLY
