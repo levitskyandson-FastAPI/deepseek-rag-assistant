@@ -1,4 +1,5 @@
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -138,7 +139,7 @@ async def webhook(token: str, request: Request):
         tg_app = telegram_apps[token]
 
         update = Update.de_json(json_data, tg_app.bot)
-        await tg_app.process_update(update)
+        asyncio.create_task(tg_app.process_update(update))
 
         return {"ok": True}
 
