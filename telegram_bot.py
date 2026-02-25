@@ -411,6 +411,8 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 - телефон → обнови phone
 - время → обнови preferred_date
 
+ВАЖНО: Если клиент запросил изменение даты или телефона, обязательно подтверди это изменение в своём ответе, используя актуальные значения из поля collected (они уже обновлены). Например: "Хорошо, изменил дату на 27.02.2026 16:00.".
+
 Если информации нет в документах —
 честно скажи, что уточнишь у менеджера.
 
@@ -575,6 +577,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 if phone_changed and session.get("contact_id"):
                     crm.update_contact_phone(session["contact_id"], new_phone)
+
                     logger.info("✅ Phone updated in AmoCRM")
                     # Подтверждение пользователю
                     await update.message.reply_text(f"✅ Телефон изменён на **{new_phone}**.")
@@ -661,12 +664,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             confirmation_text = f"""
             Договорились 👍
             
-            Зафиксировал консультацию на {session["collected"].get("preferred_date")}.
-            Имя: {session["collected"].get("name")}
-            Контактный номер: {session["collected"].get("phone")}
-            Если нужно будет изменить время или телефон — просто напишите сюда, всё оперативно поправим.
+        Зафиксировал консультацию на {session["collected"].get("preferred_date")}.
+        Имя: {session["collected"].get("name")}
+        Контактный номер: {session["collected"].get("phone")}
+        Если нужно будет изменить время или телефон — просто напишите сюда, всё оперативно поправим.
             
-            До связи.
+        До связи.
             """
             try:
                 await update.message.reply_text(confirmation_text.strip())
