@@ -8,7 +8,6 @@ import sys
 from services.amocrm import AmoCRM
 import services.amocrm as amocrm_module
 
-
 print("AMOCRM PATH:", amocrm_module.__file__)
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -28,7 +27,6 @@ from services.leads import save_lead
 from services.amocrm import AmoCRM
 from services.supabase import supabase
 from core.logger import logger
-
 
 # ======================================================
 # INIT
@@ -50,15 +48,14 @@ LEAD_TEMPLATE = {
     "name": None,
     "company": None,
     "industry": None,
-    "problem": None,          # боль/задача клиента
+    "problem": None,  # боль/задача клиента
     "current_process": None,  # как сейчас
-    "volume": None,           # объём
-    "goal": None,             # цель/ожидаемый результат
-    "budget": None,           # бюджет
-    "position": None,   # ЛПР
-    
-    "phone": None,            # телефон
-    "preferred_date": None,   # когда удобно созвониться
+    "volume": None,  # объём
+    "goal": None,  # цель/ожидаемый результат
+    "budget": None,  # бюджет
+    "position": None,  # ЛПР
+    "phone": None,  # телефон
+    "preferred_date": None,  # когда удобно созвониться
 }
 
 # Обязательные поля для отправки лида (SaaS, универсально)
@@ -71,7 +68,6 @@ REQUIRED_FIELDS = [
     "volume",
     "goal",
     "budget",
-    
     "phone",
     "preferred_date",
     "position",
@@ -185,13 +181,10 @@ def build_lead_summary(collected: dict) -> str:
 Телефон: {collected.get('phone')}
 Созвон: {collected.get('preferred_date')}
 """
+
+
 async def load_client(client_id: str):
-    res = (
-        supabase.table("clients")
-        .select("*")
-        .eq("id", client_id)
-        .execute()
-    )
+    res = supabase.table("clients").select("*").eq("id", client_id).execute()
 
     if not res.data:
         raise ValueError("Client not found")
@@ -203,9 +196,11 @@ async def load_client(client_id: str):
 
     return client
 
+
 # ======================================================
 # SESSIONS
 # ======================================================
+
 
 async def load_session(user_id: int, client_id: str):
     res = (
@@ -253,10 +248,12 @@ async def save_session(user_id: int, client_id: str, session: dict):
     except Exception as e:
         logger.error(f"Ошибка сохранения сессии в Supabase: {e}", exc_info=True)
         # Не пробрасываем исключение дальше, чтобы бот не падал
-    
+
+
 # ======================================================
 # CONVERSATION ENGINE (LLM)
 # ======================================================
+
 
 def build_system_prompt(history: str, collected: dict) -> str:
     today_str = datetime.now(MSK).strftime("%d.%m.%Y")
@@ -386,6 +383,7 @@ def build_system_prompt(history: str, collected: dict) -> str:
 {json.dumps(collected, ensure_ascii=False)}
 """
 
+
 def build_after_handoff_prompt(history: str, collected: dict) -> str:
     return f"""
 Ты — AI-ассистент компании.
@@ -426,9 +424,11 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 {history}
 """
 
+
 # ======================================================
 # CRM ADAPTER
 # ======================================================
+
 
 async def notify_manager(context, lead: dict, manager_chat_id: str | None):
     if not manager_chat_id:
@@ -447,10 +447,11 @@ async def notify_manager(context, lead: dict, manager_chat_id: str | None):
 # MAIN HANDLER
 # ======================================================
 
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     CLIENT_ID = context.application.bot_data.get("client_id")
-    
+
     # Проверка наличия client_id
     if not CLIENT_ID:
         logger.error("client_id отсутствует в bot_data")
@@ -472,7 +473,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             crm_settings = json.loads(crm_settings)
         except:
             crm_settings = {}
-    MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get("manager_chat_id")
+    MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get(
+        "manager_chat_id"
+    )
     AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
 
     crm = None
@@ -489,11 +492,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session = await load_session(user_id, CLIENT_ID)
     except Exception as e:
         logger.error(f"Ошибка загрузки сессии: {e}")
-        await update.message.reply_text("Не удалось загрузить диалог, попробуйте /start.")
+        await update.message.reply_text(
+            "Не удалось загрузить диалог, попробуйте /start."
+        )
         return
 
     session["conversation"].append({"role": "user", "content": text})
-    
 
     # ======================================================
     # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
@@ -512,8 +516,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 2️⃣ ПОДГОТОВКА ПРОМПТА И ВЫЗОВ LLM
     # ======================================================
     history_str = "\n".join(
-        f"{m['role']}: {m['content']}"
-        for m in session["conversation"][-30:]
+        f"{m['role']}: {m['content']}" for m in session["conversation"][-30:]
     )
 
     if session.get("lead_saved"):
@@ -568,18 +571,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 crm.update_contact_phone(session["contact_id"], new_phone)
                 logger.info("✅ Phone updated in AmoCRM")
                 # Подтверждение пользователю
-                await update.message.reply_text(f"✅ Телефон изменён на **{new_phone}**.")
+                await update.message.reply_text(
+                    f"✅ Телефон изменён на **{new_phone}**."
+                )
 
             if date_changed and session.get("lead_id"):
                 crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
                 logger.info("✅ Meeting time updated in AmoCRM")
                 # Подтверждение пользователю
-                await update.message.reply_text(f"✅ Дата созвона изменена на **{new_date}**.")
+                await update.message.reply_text(
+                    f"✅ Дата созвона изменена на **{new_date}**."
+                )
         except Exception as e:
             logger.error("AmoCRM update error")
             logger.exception(e)
 
-        # Уведомляем менеджера об изменениях (один раз)
+        # Уведомляем менеджера об изменениях (только если что-то изменилось)
         if phone_changed or date_changed:
             await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
@@ -589,7 +596,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ======================================================
     # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
     # ======================================================
-        if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
+    if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
         # Сохраняем в базу данных
         try:
             await save_lead(
@@ -645,7 +652,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply_text)
         return
 
-
     # ======================================================
     # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
     # ======================================================
@@ -657,6 +663,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ======================================================
 # START
 # ======================================================
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("START HANDLER TRIGGERED")
