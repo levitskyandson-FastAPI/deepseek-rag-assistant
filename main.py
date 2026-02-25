@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
                 
                 await tg_app.bot.set_webhook(
                     url=f"{webhook_base}/webhook/{token}",
-                    drop_pending_updates=True
+                    
                 )
 
                 
@@ -139,7 +139,7 @@ async def webhook(token: str, request: Request):
         tg_app = telegram_apps[token]
 
         update = Update.de_json(json_data, tg_app.bot)
-        asyncio.create_task(tg_app.process_update(update))
+        await tg_app.process_update(update)
 
         return {"ok": True}
 
