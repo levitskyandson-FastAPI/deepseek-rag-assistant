@@ -610,11 +610,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # HANDOFF
     # ======================================================
 
-    if not session["lead_saved"]:
+    if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
 
         try:
             await save_lead(
-                client_id=CLIENT_ID,
+                
                 telegram_user_id=user_id,
                 phone=session["collected"].get("phone"),
                 name=session["collected"].get("name"),
@@ -655,12 +655,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session["lead_saved"] = True
         await save_session(user_id, CLIENT_ID, session)
 
-        session["lead_saved"] = True
-        await save_session(user_id, CLIENT_ID, session)
-
         reply_text = build_lead_summary(session["collected"])
 
         await update.message.reply_text(reply_text)
+        return
 
     # ======================================================
     # NORMAL REPLY

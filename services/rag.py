@@ -21,7 +21,7 @@ async def retrieve_relevant_docs(
         }
 
         if user_id:
-            params["filter_user_id"] = user_id
+            params["filter_client"] = user_id
 
         result = supabase.rpc("match_documents", params).execute()
 
