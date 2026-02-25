@@ -151,17 +151,14 @@ async def webhook(token: str, request: Request):
 # SYSTEM ENDPOINTS
 # ======================================================
 
+@app.api_route("/", methods=["GET", "HEAD"])
+async def index():
+    return {"status": "ok", "message": "DeepSeek RAG Assistant is running"}
+
 @app.api_route("/health", methods=["GET", "HEAD"])
-async def root():
-    return {
-        "status": "ok",
-        "bots_loaded": len(telegram_apps),
-    }
-
-
-@app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
         "model": settings.chat_model,
+        "bots_loaded": len(telegram_apps),
     }
