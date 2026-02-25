@@ -444,23 +444,20 @@ async def notify_manager(context, lead: dict, manager_chat_id: str | None):
 # ======================================================
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     user_id = update.effective_user.id
-
     CLIENT_ID = context.application.bot_data.get("client_id")
     CLIENT_DATA = await load_client(CLIENT_ID)
 
-
+    # --- Загрузка настроек клиента ---
     crm_settings = CLIENT_DATA.get("crm_settings") or {}
     if isinstance(crm_settings, str):
         try:
             crm_settings = json.loads(crm_settings)
         except:
             crm_settings = {}
-    MANAGER_CHAT_ID = crm_settings.get(
-        "telegram_manager_chat_id"
-    ) or CLIENT_DATA.get("manager_chat_id")
+    MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get("manager_chat_id")
     AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
+
     crm = None
     if AMO_ACCOUNT_KEY:
         try:
@@ -472,39 +469,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         raise ValueError("client_id not found in bot_data")
 
     text = update.message.text or ""
-
     session = await load_session(user_id, CLIENT_ID)
     session["conversation"].append({"role": "user", "content": text})
+
     # ======================================================
-    # PRE-LLM: update phone / preferred_date from user text
-    # (чтобы LLM видел уже актуальные значения)
+    # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
     # ======================================================
+    old_phone = session["collected"].get("phone")
+    old_date = session["collected"].get("preferred_date")
+
+    phone_regex, preferred_date_regex = extract_phone_and_date(text, old_date)
 
     if phone_regex:
         session["collected"]["phone"] = phone_regex
-
     if preferred_date_regex:
         session["collected"]["preferred_date"] = preferred_date_regex
 
+    # ======================================================
+    # 2️⃣ ПОДГОТОВКА ПРОМПТА И ВЫЗОВ LLM
+    # ======================================================
     history_str = "\n".join(
         f"{m['role']}: {m['content']}"
         for m in session["conversation"][-30:]
     )
 
     if session.get("lead_saved"):
-        system_prompt = build_after_handoff_prompt(
-            history_str,
-            session["collected"]
-        )
+        system_prompt = build_after_handoff_prompt(history_str, session["collected"])
     else:
-        system_prompt = build_system_prompt(
-         history_str,
-            session["collected"]
-        )
-
-    # ======================================================
-    # LLM CALL
-    # ======================================================
+        system_prompt = build_system_prompt(history_str, session["collected"])
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
@@ -516,10 +508,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "system_extra": system_prompt,
                     "use_rag": True,
                     "context_info": json.dumps(
-                        {
-                            "client_id": CLIENT_ID,
-                            "source": "telegram"
-                        },
+                        {"client_id": CLIENT_ID, "source": "telegram"},
                         ensure_ascii=False,
                     ),
                 },
@@ -528,13 +517,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = response.json()
         reply = (data.get("reply") or "").strip()
 
-        # ======================================
-        # APPLY LLM JSON PATCH
-        # ======================================
-
+        # Применяем JSON-патч от LLM
         patch = extract_patch(reply)
-        # 🧹 Удаляем системный JSON блок из ответа пользователю
-        reply = JSON_RE.sub("", reply).strip()
+        reply = JSON_RE.sub("", reply).strip()  # убираем JSON из ответа пользователю
         if patch:
             apply_patch(session["collected"], patch)
 
@@ -542,84 +527,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"LLM ERROR: {e}")
         reply = "Произошёл сбой. Повторите запрос."
 
-
     # ======================================================
-    # UPDATE PHONE / TIME + CRM SYNC
+    # 3️⃣ ОПРЕДЕЛЯЕМ ИЗМЕНЕНИЯ (сравниваем с исходными old_*)
     # ======================================================
-
-    old_phone = session["collected"].get("phone")
-    old_date = session["collected"].get("preferred_date")
-
-    # --- Regex fallback ---
-    phone_regex, preferred_date_regex = extract_phone_and_date(text,
-    old_date)
-
-    if phone_regex:
-        session["collected"]["phone"] = phone_regex
-
-    if preferred_date_regex:
-        session["collected"]["preferred_date"] = preferred_date_regex
-
     new_phone = session["collected"].get("phone")
     new_date = session["collected"].get("preferred_date")
 
     phone_changed = new_phone and new_phone != old_phone
     date_changed = new_date and new_date != old_date
 
-
     # ======================================================
-    # CRM UPDATE (если лид уже создан)
+    # 4️⃣ ОБНОВЛЕНИЕ CRM (если лид уже создан)
     # ======================================================
-
     if session.get("lead_saved") and crm:
-
         try:
-
             if phone_changed and session.get("contact_id"):
-                crm.update_contact_phone(
-                    session["contact_id"],
-                    new_phone
-                )
-                
-
+                crm.update_contact_phone(session["contact_id"], new_phone)
+                logger.info("✅ Phone updated in AmoCRM")
             if date_changed and session.get("lead_id"):
-                crm.update_lead_field(
-                    session["lead_id"],
-                    "meeting_time",
-                    new_date
-                )
-            await save_session(user_id, CLIENT_ID, session)
-            logger.info("✅ Meeting time updated in AmoCRM")
-
+                crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
+                logger.info("✅ Meeting time updated in AmoCRM")
         except Exception as e:
             logger.error("AmoCRM update error")
             logger.exception(e)
 
-        if session.get("lead_saved") and (phone_changed or date_changed):
-            if session.get("lead_id"):
-                await notify_manager(
-                    context,
-                    session["collected"],
-                    MANAGER_CHAT_ID
-                )
-
-        
-
-        # если изменилось — уведомляем менеджера
-
+        # Уведомляем менеджера об изменениях
+        if phone_changed or date_changed:
+            await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
     print("COLLECTED:", session["collected"])
     print("MISSING:", missing_required(session["collected"]))
 
     # ======================================================
-    # HANDOFF
+    # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
     # ======================================================
-
     if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
-
         try:
             await save_lead(
-                
                 telegram_user_id=user_id,
                 phone=session["collected"].get("phone"),
                 name=session["collected"].get("name"),
@@ -652,23 +596,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 session["contact_id"] = amo_ids["contact_id"]
                 session["lead_id"] = amo_ids["lead_id"]
             except Exception as e:
-                logger.error ("AMO ERROR:", e)
-                raise
+                logger.error("AMO CRM ERROR:", exc_info=True)
+                # Не роняем бота, лид уже сохранён в БД
 
         await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
-
         session["lead_saved"] = True
         await save_session(user_id, CLIENT_ID, session)
 
         reply_text = build_lead_summary(session["collected"])
-
         await update.message.reply_text(reply_text)
         return
 
     # ======================================================
-    # NORMAL REPLY
+    # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
     # ======================================================
-
     session["conversation"].append({"role": "assistant", "content": reply})
     await save_session(user_id, CLIENT_ID, session)
     await update.message.reply_text(reply or "Можете уточнить?")
