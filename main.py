@@ -1,5 +1,7 @@
 import os
 import asyncio
+import signal
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +17,31 @@ from services.supabase import supabase
 
 
 logger = setup_logger(settings.log_level)
+
+# ======================================================
+# GLOBAL EXCEPTION HANDLER FOR ASYNCIO
+# ======================================================
+
+def handle_asyncio_exception(loop, context):
+    msg = context.get("exception", context["message"])
+    logger.error(f"🔥 Unhandled exception in event loop: {msg}", exc_info=context.get("exception"))
+
+loop = asyncio.get_event_loop()
+loop.set_exception_handler(handle_asyncio_exception)
+
+
+# ======================================================
+# SIGNAL HANDLERS
+# ======================================================
+
+def signal_handler(sig, frame):
+    logger.info(f"📡 Received signal {sig} ({signal.Signals(sig).name}), shutting down gracefully...")
+    # Здесь можно добавить дополнительную логику при необходимости
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+
 
 # ======================================================
 # MULTI BOT SUPPORT (SaaS READY)
@@ -90,8 +117,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    logger.info("🛑 Завершение работы...")
-
+    logger.info("🛑 Lifespan shutdown started...")
     for token, tg_app in telegram_apps.items():
         try:
             await tg_app.bot.delete_webhook()
@@ -99,6 +125,7 @@ async def lifespan(app: FastAPI):
             await tg_app.shutdown()
         except Exception as e:
             logger.error(f"Ошибка shutdown для {token[:8]}: {e}")
+    logger.info("✅ Lifespan shutdown completed")
 
 
 # ======================================================
