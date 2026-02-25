@@ -480,11 +480,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # (чтобы LLM видел уже актуальные значения)
     # ======================================================
 
-    old_phone = session["collected"].get("phone")
-    old_date = session["collected"].get("preferred_date")
-
-    phone_regex, preferred_date_regex = extract_phone_and_date(text)
-
     if phone_regex:
         session["collected"]["phone"] = phone_regex
 
@@ -600,9 +595,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error("AmoCRM update error")
             logger.exception(e)
 
-    # если изменилось — уведомляем менеджера
-    if session.get("lead_saved") and (phone_changed or date_changed):
-        await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
+        if session.get("lead_saved") and (phone_changed or date_changed):
+            if session.get("lead_id"):
+                await notify_manager(
+                    context,
+                    session["collected"],
+                    MANAGER_CHAT_ID
+                )
+
+        
+
+        # если изменилось — уведомляем менеджера
+
 
     print("COLLECTED:", session["collected"])
     print("MISSING:", missing_required(session["collected"]))
@@ -622,7 +626,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 company=session["collected"].get("company"),
                 industry=session["collected"].get("industry"),
                 pain=session["collected"].get("problem"),
-                expected_outcome=session["collected"].get("goal"),
+                goal=session["collected"].get("goal"),
                 preferred_date=session["collected"].get("preferred_date"),
                 extra_data={**session["collected"], "source": "telegram"},
             )
