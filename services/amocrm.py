@@ -236,6 +236,7 @@ class AmoCRM:
         contact_id = self.create_or_update_contact(
             name=data["name"],
             phone=data["phone"],
+            position=data.get("position")
             
         )
 

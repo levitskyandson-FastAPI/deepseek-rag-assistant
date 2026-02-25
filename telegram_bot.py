@@ -538,6 +538,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ======================================
 
         patch = extract_patch(reply)
+        # 🧹 Удаляем системный JSON блок из ответа пользователю
+        reply = JSON_RE.sub("", reply).strip()
         if patch:
             apply_patch(session["collected"], patch)
 
@@ -555,8 +557,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # --- Regex fallback ---
     phone_regex, preferred_date_regex = extract_phone_and_date(text,
-    session["collected"].get("preferred_date")
-    )
+    old_date)
 
     if phone_regex:
         session["collected"]["phone"] = phone_regex
@@ -602,6 +603,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if session.get("lead_saved") and (phone_changed or date_changed):
         await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
+    print("COLLECTED:", session["collected"])
+    print("MISSING:", missing_required(session["collected"]))
+
     # ======================================================
     # HANDOFF
     # ======================================================
@@ -643,8 +647,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 session["contact_id"] = amo_ids["contact_id"]
                 session["lead_id"] = amo_ids["lead_id"]
             except Exception as e:
-                logger.error("amo lead error")
-                logger.exception(e)
+                logger.error ("AMO ERROR:", e)
+                raise
 
         await notify_manager(context, session["collected"], MANAGER_CHAT_ID)
 
