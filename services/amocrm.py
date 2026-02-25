@@ -303,7 +303,8 @@ class AmoCRM:
         return {
             "contact_id": contact_id,
             "lead_id": lead_id,
-        }
+        }   
+    
     def update_lead_field(self, lead_id: int, field_key: str, value):
         if not value:
             return
@@ -313,17 +314,17 @@ class AmoCRM:
 
         payload = {
             "custom_fields_values": [
-            {
-                "field_id": FIELD_IDS[field_key],
-                "values": [{"value": str(value)}],
-            }
-        ]
-    }
+                {
+                    "field_id": FIELD_IDS[field_key],
+                    "values": [{"value": str(value)}],
+                }
+            ]
+        }
 
-    r = requests.patch(
-        f"{self.base_url}/leads/{lead_id}",
-        headers=self.headers,
-        json=payload,
-    )
+        r = requests.patch(
+            f"{self.base_url}/leads/{lead_id}",
+            headers=self.headers,
+            json=payload,
+        )
 
-    r.raise_for_status()
+        r.raise_for_status()
