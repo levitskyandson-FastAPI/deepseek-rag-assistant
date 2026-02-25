@@ -512,7 +512,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ======================================================
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.post(
                 API_URL,
                 json={
@@ -585,7 +585,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     session["contact_id"],
                     new_phone
                 )
-                logger.info("✅ Phone updated in AmoCRM")
+                
 
             if date_changed and session.get("lead_id"):
                 crm.update_lead_field(
@@ -593,7 +593,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "meeting_time",
                     new_date
                 )
-                logger.info("✅ Meeting time updated in AmoCRM")
+            await save_session(user_id, CLIENT_ID, session)
+            logger.info("✅ Meeting time updated in AmoCRM")
 
         except Exception as e:
             logger.error("AmoCRM update error")
