@@ -199,45 +199,6 @@ def extract_phone_and_date(text: str, old_preferred: str | None = None):
 
     return phone, preferred_date
 
-def is_gibberish(text: str) -> bool:
-    """Проверяет, является ли текст бессмысленным набором символов."""
-    if not text or len(text) < 4:
-        return False
-
-    cleaned = re.sub(r'\s+', '', text.lower())
-
-    # Если строка состоит преимущественно из цифр (телефон, цена) — пропускаем
-    digits = sum(c.isdigit() for c in cleaned)
-    if digits / len(cleaned) > 0.5:
-        return False
-
-    # Разрешённые сокращения (можно дополнить)
-    allowed_abbr = {'тр', 'тыс', 'руб', 'р', 'шт', 'г', 'мес'}
-    if cleaned in allowed_abbr:
-        return False
-
-    # Подсчёт гласных и согласных
-    vowels = set('аеёиоуыэюяaeiouy')
-    consonants = set('бвгджзйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz')
-    v_count = sum(1 for ch in cleaned if ch in vowels)
-    c_count = sum(1 for ch in cleaned if ch in consonants)
-
-    # Если нет гласных, но есть согласные и это не разрешённая аббревиатура — тарабарщина
-    if v_count == 0 and c_count > 0:
-        if cleaned not in allowed_abbr:
-            return True
-
-    # Если доля гласных слишком мала (менее 20%)
-    if v_count > 0 and v_count / (c_count + 1) < 0.2:
-        return True
-
-    # Повторяющиеся символы (например, "аааа", "рррр")
-    if re.search(r'(.)\1{2,}', cleaned):
-        return True
-
-    return False
-
-
 def missing_required(collected: dict) -> list[str]:
     return [f for f in REQUIRED_FIELDS if not collected.get(f)]
 
@@ -369,8 +330,8 @@ def build_system_prompt(history: str, collected: dict) -> str:
     - В начале каждого сообщения употребляй разные слова одобрения а не только Отлично
     - Если не указана должность — спроси:
     - Подскажите, пожалуйста, какую должность вы занимаете в компании?
+    - - Если сообщение пользователя выглядит как бессмысленный набор символов (например, "аааа", "рроллпс") или явно не связано с темой, вежливо попросите уточнить запрос.
     
-    СТИЛЬ И РАЗНООБРАЗИЕ:
     СТРОГИЕ ПРАВИЛА ПО РАЗНООБРАЗИЮ:
 
     1. Запрещено начинать ответы одним и тем же словом два раза подряд.
