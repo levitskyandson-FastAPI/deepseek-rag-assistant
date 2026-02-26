@@ -472,7 +472,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.effective_user.id
         CLIENT_ID = context.application.bot_data.get("client_id")
-        
+        now = datetime.now()
+
+        # ======================================================
+        # 🔐 RATE LIMITING И ЗАЩИТА ОТ СПАМА
+        # ======================================================
+        # Инициализируем историю сообщений пользователя, если её нет
+        if 'messages' not in context.user_data:
+            context.user_data['messages'] = []
+
+        # Оставляем только сообщения за последние 60 секунд
+        context.user_data['messages'] = [
+            ts for ts in context.user_data['messages']
+            if (now - ts).seconds < 60
+        ]
+
+        # Проверяем лимит (максимум 5 сообщений в минуту)
+        if len(context.user_data['messages']) >= 5:
+            await update.message.reply_text("⏳ Пожалуйста, не отправляйте сообщения слишком часто.")
+            return
+
+        # Добавляем текущее сообщение в историю
+        context.user_data['messages'].append(now)
+
+        # Защита от повторных одинаковых сообщений
+        current_text = update.message.text or ""
+        if 'last_text' in context.user_data and context.user_data['last_text'] == current_text:
+            last_time = context.user_data.get('last_time')
+            if last_time and (now - last_time).seconds < 10:
+                await update.message.reply_text("🔄 Вы только что отправляли это сообщение. Пожалуйста, подождите немного.")
+                return
+
+        context.user_data['last_text'] = current_text
+        context.user_data['last_time'] = now
         # Проверка наличия client_id
         if not CLIENT_ID:
             logger.error("client_id отсутствует в bot_data")
