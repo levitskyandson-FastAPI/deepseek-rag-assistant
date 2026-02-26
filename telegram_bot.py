@@ -199,6 +199,26 @@ def extract_phone_and_date(text: str, old_preferred: str | None = None):
 
     return phone, preferred_date
 
+def is_gibberish(text: str) -> bool:
+    """Проверяет, является ли текст бессмысленным набором символов."""
+    if not text or len(text) < 4:
+        return False
+    # Убираем пробелы и приводим к нижнему регистру
+    cleaned = re.sub(r'\s+', '', text.lower())
+    # Подсчёт гласных и согласных
+    vowels = set('аеёиоуыэюяaeiouy')
+    consonants = set('бвгджзйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz')
+    v_count = sum(1 for ch in cleaned if ch in vowels)
+    c_count = sum(1 for ch in cleaned if ch in consonants)
+    # Если гласных очень мало или нет
+    if v_count == 0 or v_count / (c_count + 1) < 0.2:
+        return True
+    # Поиск повторяющихся символов (например, "рррр")
+    if re.search(r'(.)\1{2,}', cleaned):
+        return True
+    # Можно добавить проверку по словарю, но для простоты хватит
+    return False
+
 
 def missing_required(collected: dict) -> list[str]:
     return [f for f in REQUIRED_FIELDS if not collected.get(f)]
@@ -587,6 +607,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         session["conversation"].append({"role": "user", "content": text})
         
+        # ======================================================
+        # 🧠 ПРОВЕРКА НА ТАРАБАРЩИНУ
+        # ======================================================
+        if is_gibberish(text):
+            logger.info(f"Обнаружена тарабарщина от пользователя {user_id}: {text}")
+            await update.message.reply_text("Извините, я не совсем понял. Пожалуйста, повторите.")
+            # Сохраняем сессию с этим сообщением (для истории)
+            await save_session(user_id, CLIENT_ID, session)
+            return
 
         # ======================================================
         # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
