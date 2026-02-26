@@ -386,6 +386,7 @@ def build_system_prompt(history: str, collected: dict) -> str:
 """
 
 def build_after_handoff_prompt(history: str, collected: dict) -> str:
+    today_str = datetime.now(MSK).strftime("%d.%m.%Y")
     return f"""
 Ты — AI-ассистент компании.
 
