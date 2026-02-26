@@ -114,6 +114,25 @@ def normalize_phone(raw: str) -> str | None:
         return None
     return p
 
+def parse_explicit_date(text: str, base_date: datetime.date) -> str | None:
+    """Ищет дату в формате 'число месяц' (например, '1 марта') и возвращает ДД.ММ.ГГГГ."""
+    months_ru = {
+        'января': 1, 'февраля': 2, 'марта': 3, 'апреля': 4, 'мая': 5, 'июня': 6,
+        'июля': 7, 'августа': 8, 'сентября': 9, 'октября': 10, 'ноября': 11, 'декабря': 12
+    }
+    # Ищем число и месяц в родительном падеже
+    pattern = r'(\d{1,2})\s*(' + '|'.join(months_ru.keys()) + r')'
+    match = re.search(pattern, text.lower())
+    if match:
+        day = int(match.group(1))
+        month = months_ru[match.group(2)]
+        year = base_date.year
+        # Если месяц уже прошёл в этом году – предполагаем следующий год
+        if month < base_date.month:
+            year += 1
+        return f"{day:02d}.{month:02d}.{year}"
+    return None
+
 
 def extract_phone_and_date(text: str, old_preferred: str | None = None):
     if not text:
@@ -130,23 +149,43 @@ def extract_phone_and_date(text: str, old_preferred: str | None = None):
 
     tl = text.lower()
 
-    # --- определяем новую дату ---
-    if "послезавтра" in tl:
-        new_date = base_date + timedelta(days=2)
-    elif "завтра" in tl:
-        new_date = base_date + timedelta(days=1)
-    elif "сегодня" in tl:
-        new_date = base_date
+    new_date = None
+    explicit_date = parse_explicit_date(text, base_date)
+    if explicit_date:
+        new_date = datetime.strptime(explicit_date, "%d.%m.%Y").date()
     else:
-        new_date = None
+        # --- определяем новую дату по ключевым словам ---
+        if "послезавтра" in tl:
+            new_date = base_date + timedelta(days=2)
+        elif "завтра" in tl:
+            new_date = base_date + timedelta(days=1)
+        elif "сегодня" in tl:
+            new_date = base_date
 
-    # --- определяем время ---
-    tm = re.search(r"(\d{1,2})[:.-](\d{2})", text)
     new_time = None
+    # --- определяем время ---
+    
+    tm = re.search(r"(\d{1,2})[:.-](\d{2})", text)
+    
     if tm:
         hh = tm.group(1).zfill(2)
         mm = tm.group(2)
         new_time = f"{hh}:{mm}"
+    else:
+        # словесное время
+        if "утром" in tl:
+            new_time = "10:00"
+        elif "вечером" in tl:
+            new_time = "18:00"
+        elif "днём" in tl or "днем" in tl:
+            new_time = "13:00"
+        elif "ночью" in tl:
+            new_time = "22:00"
+        elif "после обеда" in tl:
+            new_time = "14:00"
+        elif "после полудня" in tl:
+            new_time = "14:00"
+        
 
     # --- логика пересборки ---
     if new_date:
@@ -598,7 +637,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             patch = extract_patch(reply)
             reply = JSON_RE.sub("", reply).strip()  # убираем JSON из ответа пользователю
             if patch:
-                apply_patch(session["collected"], patch)
+                # Если лид сохранён, применяем только для разрешённых полей
+                if session.get("lead_saved"):
+                    allowed_fields = ["phone", "preferred_date"]
+                    filtered_patch = {k: v for k, v in patch.items() if k in allowed_fields}
+                    apply_patch(session["collected"], filtered_patch)
+                else:
+                    apply_patch(session["collected"], patch)
 
         except Exception as e:
             logger.error(f"LLM ERROR: {e}")
