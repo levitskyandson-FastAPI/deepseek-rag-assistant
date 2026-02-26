@@ -585,16 +585,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         session["conversation"].append({"role": "user", "content": text})
-        
-        # ======================================================
-        # 🧠 ПРОВЕРКА НА ТАРАБАРЩИНУ
-        # ======================================================
-        if is_gibberish(text):
-            logger.info(f"Обнаружена тарабарщина от пользователя {user_id}: {text}")
-            await update.message.reply_text("Извините, я не совсем понял. Пожалуйста, повторите.")
-            # Сохраняем сессию с этим сообщением (для истории)
-            await save_session(user_id, CLIENT_ID, session)
-            return
 
         # ======================================================
         # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
