@@ -673,15 +673,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
             # ======================================================
             confirmation_text = f"""
-            Договорились 👍
-            
-        Зафиксировал консультацию на {session["collected"].get("preferred_date")}.
-        Имя: {session["collected"].get("name")}
-        Контактный номер: {session["collected"].get("phone")}
-        Если нужно будет изменить время или телефон — просто напишите сюда, всё оперативно поправим.
-            
-        До связи.
-            """
+Отлично, договорились.
+
+Консультация назначена на {session["collected"].get("preferred_date")}.
+
+Контакт для связи: {session["collected"].get("phone")}
+Имя: {session["collected"].get("name")}
+
+Если потребуется скорректировать время или номер — напишите сюда, всё быстро обновим.
+
+До связи.
+"""
             try:
                 await update.message.reply_text(confirmation_text.strip())
                 logger.info(">>> HANDOFF: подтверждение отправлено пользователю")
