@@ -203,20 +203,38 @@ def is_gibberish(text: str) -> bool:
     """Проверяет, является ли текст бессмысленным набором символов."""
     if not text or len(text) < 4:
         return False
-    # Убираем пробелы и приводим к нижнему регистру
+
     cleaned = re.sub(r'\s+', '', text.lower())
+
+    # Если строка состоит преимущественно из цифр (телефон, цена) — пропускаем
+    digits = sum(c.isdigit() for c in cleaned)
+    if digits / len(cleaned) > 0.5:
+        return False
+
+    # Разрешённые сокращения (можно дополнить)
+    allowed_abbr = {'тр', 'тыс', 'руб', 'р', 'шт', 'г', 'мес'}
+    if cleaned in allowed_abbr:
+        return False
+
     # Подсчёт гласных и согласных
     vowels = set('аеёиоуыэюяaeiouy')
     consonants = set('бвгджзйклмнпрстфхцчшщbcdfghjklmnpqrstvwxz')
     v_count = sum(1 for ch in cleaned if ch in vowels)
     c_count = sum(1 for ch in cleaned if ch in consonants)
-    # Если гласных очень мало или нет
-    if v_count == 0 or v_count / (c_count + 1) < 0.2:
+
+    # Если нет гласных, но есть согласные и это не разрешённая аббревиатура — тарабарщина
+    if v_count == 0 and c_count > 0:
+        if cleaned not in allowed_abbr:
+            return True
+
+    # Если доля гласных слишком мала (менее 20%)
+    if v_count > 0 and v_count / (c_count + 1) < 0.2:
         return True
-    # Поиск повторяющихся символов (например, "рррр")
+
+    # Повторяющиеся символы (например, "аааа", "рррр")
     if re.search(r'(.)\1{2,}', cleaned):
         return True
-    # Можно добавить проверку по словарю, но для простоты хватит
+
     return False
 
 
