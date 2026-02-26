@@ -547,7 +547,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
 
         # Проверяем лимит (максимум 5 сообщений в минуту)
-        if len(context.user_data['messages']) >= 5:
+        if len(context.user_data['messages']) >= 25:
             await update.message.reply_text("⏳ Пожалуйста, не отправляйте сообщения слишком часто.")
             return
 
