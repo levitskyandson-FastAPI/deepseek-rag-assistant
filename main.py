@@ -13,8 +13,9 @@ from routers.documents import router as documents_router
 from core.logger import setup_logger
 from config import settings
 from telegram_bot import start, handle_message
-from services.supabase import supabase
 
+# Импорт для работы с PostgreSQL
+from services.db import init_db_pool, close_db_pool, get_all_active_clients
 
 logger = setup_logger(settings.log_level)
 
@@ -36,7 +37,6 @@ loop.set_exception_handler(handle_asyncio_exception)
 
 def signal_handler(sig, frame):
     logger.info(f"📡 Received signal {sig} ({signal.Signals(sig).name}), shutting down gracefully...")
-    # Здесь можно добавить дополнительную логику при необходимости
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, signal_handler)
@@ -44,42 +44,9 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 # ======================================================
-# MULTI BOT SUPPORT (SaaS READY)
+# Глобальный словарь приложений Telegram-ботов
 # ======================================================
-
 telegram_apps = {}
-
-clients_resp = (
-    supabase.table("clients")
-    .select("*")
-    .eq("is_active", True)
-    .execute()
-)
-
-clients = clients_resp.data or []
-
-if not clients:
-    logger.warning("⚠️ Нет активных клиентов в таблице clients")
-
-for c in clients:
-    token = c.get("bot_token")
-    client_id = c.get("id")
-
-    if not token or not client_id:
-        logger.warning("⚠️ Пропуск клиента: нет bot_token или id")
-        continue
-
-    tg_app = Application.builder().token(token).build()
-    tg_app.bot_data["client_id"] = client_id
-
-    tg_app.add_handler(CommandHandler("start", start))
-    tg_app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
-    )
-
-    telegram_apps[token] = tg_app
-
-logger.info(f"🤖 Загружено Telegram ботов из Supabase: {len(telegram_apps)}")
 
 
 # ======================================================
@@ -91,10 +58,33 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Запуск DeepSeek RAG Assistant...")
     logger.info(f"📚 Модель чата: {settings.chat_model}")
     logger.info("🧠 Режим RAG: активен")
-    logger.info(f"🏢 SaaS клиентов: {len(telegram_apps)}")
 
+    # 1. Инициализация пула соединений с PostgreSQL
+    await init_db_pool()
+
+    # 2. Загрузка активных клиентов из БД
+    clients = await get_all_active_clients()
+    if not clients:
+        logger.warning("⚠️ Нет активных клиентов в таблице clients")
+    else:
+        for c in clients:
+            token = c.get("bot_token")
+            client_id = c.get("id")
+            if not token or not client_id:
+                logger.warning("⚠️ Пропуск клиента: нет bot_token или id")
+                continue
+
+            tg_app = Application.builder().token(token).build()
+            tg_app.bot_data["client_id"] = client_id
+            tg_app.add_handler(CommandHandler("start", start))
+            tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+            telegram_apps[token] = tg_app
+
+    logger.info(f"🤖 Загружено Telegram ботов: {len(telegram_apps)}")
+
+    # 3. Установка вебхуков
     webhook_base = os.getenv("WEBHOOK_URL_BASE")
-
     if not webhook_base:
         logger.error("❌ WEBHOOK_URL_BASE not set")
     else:
@@ -102,21 +92,17 @@ async def lifespan(app: FastAPI):
             try:
                 await tg_app.initialize()
                 await tg_app.start()
-
                 await tg_app.bot.set_webhook(
                     url=f"{webhook_base}/webhook/{token}",
                     drop_pending_updates=True
                 )
-
-                logger.info(
-                    f"✅ Webhook установлен для клиента {tg_app.bot_data.get('client_id')} ({token[:8]}...)"
-                )
-
+                logger.info(f"✅ Webhook установлен для клиента {tg_app.bot_data.get('client_id')} ({token[:8]}...)")
             except Exception as e:
                 logger.error(f"❌ Ошибка webhook для {token[:8]}: {e}")
 
     yield
 
+    # 4. Корректное завершение
     logger.info("🛑 Lifespan shutdown started...")
     for token, tg_app in telegram_apps.items():
         try:
@@ -125,6 +111,8 @@ async def lifespan(app: FastAPI):
             await tg_app.shutdown()
         except Exception as e:
             logger.error(f"Ошибка shutdown для {token[:8]}: {e}")
+
+    await close_db_pool()
     logger.info("✅ Lifespan shutdown completed")
 
 
@@ -151,7 +139,7 @@ app.include_router(documents_router)
 
 
 # ======================================================
-# TELEGRAM WEBHOOK ROUTING (MULTI-TENANT)
+# TELEGRAM WEBHOOK ROUTING
 # ======================================================
 
 @app.post("/webhook/{token}")
@@ -163,12 +151,9 @@ async def webhook(token: str, request: Request):
     try:
         json_data = await request.json()
         tg_app = telegram_apps[token]
-
         update = Update.de_json(json_data, tg_app.bot)
         await tg_app.process_update(update)
-
         return {"ok": True}
-
     except Exception as e:
         logger.error(f"Webhook error: {e}", exc_info=True)
         return {"ok": False, "error": str(e)}

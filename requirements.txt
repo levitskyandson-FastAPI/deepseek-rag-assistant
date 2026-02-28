@@ -11,3 +11,6 @@ PyPDF2
 python-multipart
 pydantic-settings
 openai
+asyncpg
+aiohttp
+yandex-neural-api  # если используете библиотеку, но в нашем скрипте мы использовали прямой aiohttp

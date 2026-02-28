@@ -1,42 +1,76 @@
-import httpx
 import asyncio
+import aiohttp
+import asyncpg
+from typing import List
 import PyPDF2
 from io import BytesIO
-from typing import List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_exponential
-from openai import OpenAI
 
-from config import settings
-from services.supabase import supabase
 from core.logger import logger
+# Если есть settings, можно импортировать, но здесь используем прямые значения
+# from config import settings
+from config import settings
+# ========== КОНФИГУРАЦИЯ (ваши данные) ==========
+DB_PASSWORD = "kS8-i8t-XJg-eJD"
+DB_HOST = "rc1b-f309n3otbdih0f46.mdb.yandexcloud.net"
+DB_PORT = 6432
+DB_NAME = "db1"
+DB_USER = "user1"
+DB_DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?ssl=require"
 
-# Инициализация клиента OpenAI
-client = OpenAI(api_key=settings.openai_api_key)
+YC_FOLDER_ID = settings.YC_FOLDER_ID
+YC_API_KEY = settings.YC_API_KEY
+EMBEDDING_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
+EMBEDDING_MODEL = "text-search-doc"  # для документов
+# ==============================================
+
+# Глобальный пул соединений
+_pool = None
+
+async def init_db_pool():
+    global _pool
+    _pool = await asyncpg.create_pool(DB_DSN, min_size=1, max_size=10)
+    logger.info("✅ Пул соединений с БД создан")
+
+async def close_db_pool():
+    if _pool:
+        await _pool.close()
+        logger.info("🔌 Пул соединений закрыт")
+
+def get_db_pool() -> asyncpg.Pool:
+    if _pool is None:
+        raise RuntimeError("Пул БД не инициализирован")
+    return _pool
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def get_embedding(text: str) -> List[float]:
-    """Получение эмбеддинга через OpenAI API"""
+    """Получение эмбеддинга через YandexGPT API"""
+    headers = {
+        "Authorization": f"Api-Key {YC_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "modelUri": f"emb://{YC_FOLDER_ID}/{EMBEDDING_MODEL}",
+        "text": text
+    }
     try:
-        logger.info(f"Requesting embedding from OpenAI for text length {len(text)}")
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=text,
-            encoding_format="float"
-        )
-        embedding = response.data[0].embedding
-        logger.info(f"Received embedding with {len(embedding)} dimensions")
-        return embedding
+        logger.info(f"Запрос эмбеддинга для текста длиной {len(text)}")
+        async with aiohttp.ClientSession() as session:
+            async with session.post(EMBEDDING_URL, headers=headers, json=payload, timeout=30) as resp:
+                if resp.status != 200:
+                    text_err = await resp.text()
+                    logger.error(f"Ошибка YandexGPT API {resp.status}: {text_err}")
+                    raise Exception(f"YandexGPT API error: {resp.status}")
+                data = await resp.json()
+                embedding = data["embedding"]
+                logger.info(f"Получен эмбеддинг размерностью {len(embedding)}")
+                return embedding
     except Exception as e:
-        logger.error(f"OpenAI API error: {e}", exc_info=True)
+        logger.error(f"Ошибка YandexGPT API: {e}", exc_info=True)
         raise
 
-def split_text(text: str, chunk_size: int = None, overlap: int = None) -> List[str]:
+def split_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
     """Разделение текста на чанки с перекрытием"""
-    if chunk_size is None:
-        chunk_size = settings.chunk_size
-    if overlap is None:
-        overlap = settings.chunk_overlap
-    
     chunks = []
     start = 0
     text_length = len(text)
@@ -67,9 +101,14 @@ async def extract_text_from_file(file) -> str:
             text += page.extract_text()
         return text
     else:
-        raise ValueError(f"Unsupported file type: {file.filename}")
+        raise ValueError(f"Неподдерживаемый тип файла: {file.filename}")
 
-async def process_document(user_id: str, file, metadata: dict) -> int:
+async def process_document(client_id: str, file, metadata: dict) -> int:
+    """
+    Обработка документа: разбивка на чанки, генерация эмбеддингов, сохранение в PostgreSQL.
+    client_id — UUID клиента (например, '112e1504-1724-4c46-9d1d-bb8fb4c5cffe')
+    """
+    pool = get_db_pool()
     try:
         logger.info(f"process_document: начало, файл {file.filename}")
         text = await extract_text_from_file(file)
@@ -82,47 +121,71 @@ async def process_document(user_id: str, file, metadata: dict) -> int:
         logger.info(f"Файл {file.filename} разбит на {len(chunks)} чанков")
         
         doc_metadata = {
-            "user_id": user_id,
             "filename": file.filename,
             "content_type": file.content_type,
             **metadata
         }
         
-        tasks = []
-        for i, chunk in enumerate(chunks):
-            chunk_metadata = {
-                **doc_metadata,
-                "chunk_index": i,
-                "chunk_size": len(chunk)
-            }
-            tasks.append(_save_chunk_safe(chunk, chunk_metadata))
-        
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
         success_count = 0
-        for i, res in enumerate(results):
-            if isinstance(res, Exception):
-                logger.error(f"Ошибка при сохранении чанка {i} файла {file.filename}: {res}")
-            else:
-                success_count += 1
+        async with pool.acquire() as conn:
+            for i, chunk in enumerate(chunks):
+                chunk_metadata = {
+                    **doc_metadata,
+                    "chunk_index": i,
+                    "chunk_size": len(chunk)
+                }
+                try:
+                    embedding = await get_embedding(chunk)
+                    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+                    await conn.execute("""
+                        INSERT INTO documents (content, metadata, embedding, client_id)
+                        VALUES ($1, $2::jsonb, $3::vector, $4)
+                    """, chunk, chunk_metadata, embedding_str, client_id)
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке чанка {i}: {e}")
         
         logger.info(f"Успешно сохранено {success_count} из {len(chunks)} чанков для {file.filename}")
         return success_count
-        
     except Exception as e:
         logger.error(f"Критическая ошибка при обработке {file.filename}: {e}", exc_info=True)
         raise
 
-async def _save_chunk_safe(content: str, metadata: dict):
-    try:
-        embedding = await get_embedding(content)
-        data = {
-            "content": content,
-            "metadata": metadata,
-            "embedding": embedding
-        }
-        result = supabase.table("documents").insert(data).execute()
-        return result.data[0]["id"]
-    except Exception as e:
-        logger.error(f"Ошибка в _save_chunk для чанка: {e}", exc_info=True)
-        raise
+async def update_missing_embeddings(client_id: str):
+    """Обновляет эмбеддинги для документов, у которых они ещё не заполнены."""
+    pool = get_db_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, content FROM documents
+            WHERE client_id = $1 AND embedding IS NULL
+        """, client_id)
+    
+    if not rows:
+        logger.info(f"Нет документов для обновления у клиента {client_id}")
+        return
+    
+    logger.info(f"Найдено документов для обновления: {len(rows)}")
+    for row in rows:
+        doc_id = row["id"]
+        content = row["content"]
+        try:
+            embedding = await get_embedding(content)
+            embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+            async with pool.acquire() as conn:
+                await conn.execute("""
+                    UPDATE documents SET embedding = $1::vector WHERE id = $2
+                """, embedding_str, doc_id)
+            logger.info(f"Документ {doc_id} обновлён")
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении документа {doc_id}: {e}")
+
+# Для самостоятельного запуска обновления
+async def main():
+    await init_db_pool()
+    # Укажите UUID вашего клиента (например, для Levitsky)
+    client_id = "112e1504-1724-4c46-9d1d-bb8fb4c5cffe"
+    await update_missing_embeddings(client_id)
+    await close_db_pool()
+
+if __name__ == "__main__":
+    asyncio.run(main())

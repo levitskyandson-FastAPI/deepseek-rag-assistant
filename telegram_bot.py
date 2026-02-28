@@ -23,10 +23,11 @@ from telegram.ext import (
 )
 
 from services.leads import save_lead
-
 from services.amocrm import AmoCRM
-from services.supabase import supabase
 from core.logger import logger
+
+# Импорты из нового db-модуля
+from services.db import get_client, get_session, save_session
 
 
 # ======================================================
@@ -223,21 +224,12 @@ def build_lead_summary(collected: dict) -> str:
 Созвон: {collected.get('preferred_date')}
 """
 async def load_client(client_id: str):
-    res = (
-        supabase.table("clients")
-        .select("*")
-        .eq("id", client_id)
-        .execute()
-    )
-
-    if not res.data:
+    # Замена Supabase на PostgreSQL
+    client = await get_client(client_id)
+    if not client:
         raise ValueError("Client not found")
-
-    client = res.data[0]
-
     if not client.get("is_active"):
         raise ValueError("Client inactive")
-
     return client
 
 # ======================================================
@@ -245,24 +237,9 @@ async def load_client(client_id: str):
 # ======================================================
 
 async def load_session(user_id: int, client_id: str):
-    res = (
-        supabase.table("sessions")
-        .select("*")
-        .eq("user_id", user_id)
-        .eq("client_id", client_id)
-        .execute()
-    )
-
-    if res.data:
-        d = res.data[0]
-        return {
-            "conversation": json.loads(d["conversation"]),
-            "collected": json.loads(d["collected"]),
-            "lead_saved": d.get("lead_saved", False),
-            "contact_id": d.get("contact_id"),
-            "lead_id": d.get("lead_id"),
-        }
-
+    data = await get_session(user_id, client_id)
+    if data:
+        return data
     return {
         "conversation": [],
         "collected": LEAD_TEMPLATE.copy(),
@@ -271,26 +248,12 @@ async def load_session(user_id: int, client_id: str):
         "lead_id": None,
     }
 
+# Функция save_session импортируется из services.db, поэтому здесь её определять не нужно.
+# В текущем файле она была определена, но теперь мы будем использовать импортированную.
+# Убедимся, что в коде вызывается именно импортированная версия (в handle_message и start).
+# Я оставлю этот комментарий, а само определение удалю, чтобы не было конфликта.
+# Ниже в коде вызовы save_session остаются без изменений, они будут использовать импортированную функцию.
 
-async def save_session(user_id: int, client_id: str, session: dict):
-    try:
-        supabase.table("sessions").upsert(
-            {
-                "user_id": user_id,
-                "client_id": client_id,
-                "conversation": json.dumps(session["conversation"], ensure_ascii=False),
-                "collected": json.dumps(session["collected"], ensure_ascii=False),
-                "lead_saved": session["lead_saved"],
-                "contact_id": session.get("contact_id"),
-                "lead_id": session.get("lead_id"),
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-            },
-            on_conflict="user_id,client_id",
-        ).execute()
-    except Exception as e:
-        logger.error(f"Ошибка сохранения сессии в Supabase: {e}", exc_info=True)
-        # Не пробрасываем исключение дальше, чтобы бот не падал
-    
 # ======================================================
 # CONVERSATION ENGINE (LLM)
 # ======================================================
@@ -520,25 +483,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ======================================================
         # 🔐 RATE LIMITING И ЗАЩИТА ОТ СПАМА
         # ======================================================
-        # Инициализируем историю сообщений пользователя, если её нет
         if 'messages' not in context.user_data:
             context.user_data['messages'] = []
 
-        # Оставляем только сообщения за последние 60 секунд
         context.user_data['messages'] = [
             ts for ts in context.user_data['messages']
             if (now - ts).seconds < 60
         ]
 
-        # Проверяем лимит (максимум 5 сообщений в минуту)
         if len(context.user_data['messages']) >= 25:
             await update.message.reply_text("⏳ Пожалуйста, не отправляйте сообщения слишком часто.")
             return
 
-        # Добавляем текущее сообщение в историю
         context.user_data['messages'].append(now)
 
-        # Защита от повторных одинаковых сообщений
         current_text = update.message.text or ""
         if 'last_text' in context.user_data and context.user_data['last_text'] == current_text:
             last_time = context.user_data.get('last_time')
@@ -548,13 +506,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data['last_text'] = current_text
         context.user_data['last_time'] = now
-        # Проверка наличия client_id
+
         if not CLIENT_ID:
             logger.error("client_id отсутствует в bot_data")
             await update.message.reply_text("Ошибка конфигурации бота.")
             return
 
-        # Загрузка клиента с обработкой ошибок
         try:
             CLIENT_DATA = await load_client(CLIENT_ID)
         except Exception as e:
@@ -562,7 +519,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Технический сбой, попробуйте позже.")
             return
 
-        # Загрузка настроек клиента
         crm_settings = CLIENT_DATA.get("crm_settings") or {}
         if isinstance(crm_settings, str):
             try:
@@ -581,7 +537,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         text = update.message.text or ""
 
-        # Загрузка сессии с обработкой ошибок
         try:
             session = await load_session(user_id, CLIENT_ID)
         except Exception as e:
@@ -591,9 +546,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         session["conversation"].append({"role": "user", "content": text})
 
-        # ======================================================
-        # 1️⃣ ИЗВЛЕКАЕМ ТЕЛЕФОН И ДАТУ ИЗ СООБЩЕНИЯ (до LLM)
-        # ======================================================
         old_phone = session["collected"].get("phone")
         old_date = session["collected"].get("preferred_date")
 
@@ -604,9 +556,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if preferred_date_regex:
             session["collected"]["preferred_date"] = preferred_date_regex
 
-        # ======================================================
-        # 2️⃣ ПОДГОТОВКА ПРОМПТА И ВЫЗОВ LLM
-        # ======================================================
         history_str = "\n".join(
             f"{m['role']}: {m['content']}"
             for m in session["conversation"][-30:]
@@ -636,11 +585,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data = response.json()
             reply = (data.get("reply") or "").strip()
 
-            # Применяем JSON-патч от LLM
             patch = extract_patch(reply)
-            reply = JSON_RE.sub("", reply).strip()  # убираем JSON из ответа пользователю
+            reply = JSON_RE.sub("", reply).strip()
             if patch:
-                # Если лид сохранён, применяем только для разрешённых полей
                 if session.get("lead_saved"):
                     allowed_fields = ["phone", "preferred_date"]
                     filtered_patch = {k: v for k, v in patch.items() if k in allowed_fields}
@@ -652,51 +599,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"LLM ERROR: {e}")
             reply = "Произошёл сбой. Повторите запрос."
 
-        # ======================================================
-        # 3️⃣ ОПРЕДЕЛЯЕМ ИЗМЕНЕНИЯ (сравниваем с исходными old_*)
-        # ======================================================
         new_phone = session["collected"].get("phone")
         new_date = session["collected"].get("preferred_date")
 
         phone_changed = new_phone and new_phone != old_phone
         date_changed = new_date and new_date != old_date
 
-        
-        # ======================================================
-        # 4️⃣ ОБНОВЛЕНИЕ CRM (если лид уже создан)
-        # ======================================================
         if session.get("lead_saved") and crm:
             try:
                 if phone_changed and session.get("contact_id"):
                     crm.update_contact_phone(session["contact_id"], new_phone)
-
                     logger.info("✅ Phone updated in AmoCRM")
-                    # Подтверждение пользователю
                     await update.message.reply_text(f"✅ Телефон изменён на **{new_phone}**.")
 
                 if date_changed and session.get("lead_id"):
                     crm.update_lead_field(session["lead_id"], "meeting_time", new_date)
                     logger.info("✅ Meeting time updated in AmoCRM")
-                    # Подтверждение пользователю
                     await update.message.reply_text(f"✅ Дата созвона изменена на **{new_date}**.")
             except Exception as e:
                 logger.error("AmoCRM update error")
                 logger.exception(e)
 
-            # Уведомляем менеджера об изменениях (только если что-то изменилось)
             if phone_changed or date_changed:
                 await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
 
         print("COLLECTED:", session["collected"])
         print("MISSING:", missing_required(session["collected"]))
 
-        # ======================================================
-        # 5️⃣ ПЕРЕДАЧА ЛИДА МЕНЕДЖЕРУ (если все поля собраны)
-        # ======================================================
         if (not session["lead_saved"]) and is_ready_for_handoff(session["collected"]):
             logger.info(">>> HANDOFF: начало передачи лида")
 
-            # Сохраняем в базу данных
             try:
                 await save_lead(
                     telegram_user_id=user_id,
@@ -708,12 +640,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     goal=session["collected"].get("goal"),
                     preferred_date=session["collected"].get("preferred_date"),
                     extra_data={**session["collected"], "source": "telegram"},
+                    client_id=CLIENT_ID,  # Добавлен обязательный параметр
                 )
                 logger.info(">>> HANDOFF: лид сохранён в БД")
             except Exception as e:
                 logger.error(f"HANDOFF: save_lead error: {e}")
 
-            # Создаём лид в AmoCRM
             if crm:
                 try:
                     amo_ids = crm.create_lead(
@@ -736,23 +668,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception as e:
                     logger.error("HANDOFF: AMO CRM ERROR:", exc_info=True)
 
-            # Уведомляем менеджера (ОДИН РАЗ)
             await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
             logger.info(">>> HANDOFF: менеджер уведомлён")
 
-            # Помечаем лид как сохранённый
             session["lead_saved"] = True
 
-            # Сохраняем сессию
             try:
                 await save_session(user_id, CLIENT_ID, session)
                 logger.info(">>> HANDOFF: сессия сохранена")
             except Exception as e:
                 logger.error(f"HANDOFF: не удалось сохранить сессию: {e}")
 
-            # ======================================================
-            # ПОДТВЕРЖДЕНИЕ ФИКСАЦИИ КОНСУЛЬТАЦИИ
-            # ======================================================
             confirmation_text = f"""
 Отлично, договорились.
 
@@ -774,10 +700,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.error(f"HANDOFF: ошибка отправки подтверждения: {e}", exc_info=True)
 
             return
-        
-        # ======================================================
-        # 6️⃣ ОБЫЧНЫЙ ОТВЕТ (лид ещё не готов)
-        # ======================================================
+
         session["conversation"].append({"role": "assistant", "content": reply})
         try:
             await save_session(user_id, CLIENT_ID, session)
@@ -810,7 +733,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not CLIENT_ID:
         raise ValueError("client_id not found in bot_data")
 
-    # 🔥 Динамически загружаем клиента
     CLIENT_DATA = await load_client(CLIENT_ID)
 
     session = {
