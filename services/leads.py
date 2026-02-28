@@ -1,49 +1,11 @@
-from services.supabase import supabase
-from core.logger import logger
-
-async def save_lead(telegram_user_id: int, name: str = None, phone: str = None,
-                    company: str = None, industry: str = None,
-                    preferred_date: str = None, pain: str = None, goal: str = None,
-                    extra_data: dict = None):
-    try:
-        logger.info(f"📥 save_lead вызван: user_id={telegram_user_id}, phone={phone}, name={name}, company={company}")
-
-        if not phone:
-            logger.warning("❌ Попытка сохранить лид без телефона")
-            return None
-
-        data = {
-            "telegram_user_id": telegram_user_id,
-            "phone": phone,
-            "pain_description": pain,
-            "collected_data": extra_data or {}
-        }
-        if name:
-            data["name"] = name
-        if company:
-            data["company"] = company
-        if industry:
-            data["industry"] = industry
-        if preferred_date:
-            data["preferred_date"] = preferred_date
-        if goal:
-            data["goal"] = goal   # добавлено поле goal
-
-        logger.info(f"📦 Данные для вставки: {data}")
-        result = supabase.table("leads").insert(data).execute()
-        logger.info(f"✅ Лид сохранён, результат: {result.data}")
-        return result.data
-    except Exception as e:
-        logger.error(f"❌ Ошибка сохранения лида: {e}", exc_info=True)
-        # Не пробрасываем исключение, чтобы бот не падал
-        return Nonimport json
+import json
 from services.db import get_db_pool
 from core.logger import logger
 
 async def save_lead(
     telegram_user_id: int,
     phone: str,
-    client_id: str,  # обязательный параметр для мультитенантности
+    client_id: str,
     name: str = None,
     company: str = None,
     industry: str = None,
@@ -54,7 +16,7 @@ async def save_lead(
 ):
     """
     Сохраняет лид в таблицу leads с привязкой к клиенту (client_id).
-    Возвращает список с одним словарем, содержащим id новой записи (для совместимости с supabase).
+    Возвращает список с одним словарем, содержащим id новой записи.
     """
     try:
         logger.info(f"📥 save_lead: user={telegram_user_id}, phone={phone}, client={client_id}")
@@ -63,7 +25,7 @@ async def save_lead(
             logger.warning("❌ Попытка сохранить лид без телефона")
             return None
         if not client_id:
-            logger.error("❌ client_id обязателен для сохранения лида в мультитенантной системе")
+            logger.error("❌ client_id обязателен для сохранения лида")
             return None
 
         collected = extra_data or {}
@@ -91,7 +53,6 @@ async def save_lead(
 
             lead_id = row["id"]
             logger.info(f"✅ Лид сохранён, id={lead_id}")
-            # Возвращаем структуру, аналогичную result.data из supabase
             return [{"id": lead_id}]
 
     except Exception as e:
