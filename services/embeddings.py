@@ -19,7 +19,7 @@ DB_USER = "user1"
 DB_DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?ssl=require"
 
 YC_FOLDER_ID = settings.yc_folder_id
-YC_API_KEY = settings.settings.settings.yc_api_key
+YC_API_KEY = settings.yc_api_key
 EMBEDDING_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
 EMBEDDING_MODEL = "text-search-doc"  # для документов
 # ==============================================
