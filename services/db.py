@@ -5,7 +5,7 @@ from core.logger import logger
 from config import settings
 
 # Строка подключения из настроек (добавьте их в config.py)
-DB_DSN = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}?ssl=require"
+DB_DSN = f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}?ssl=require"
 
 _pool = None
 
