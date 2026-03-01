@@ -571,7 +571,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 response = await client.post(
                     API_URL,
                     json={
-                        "user_id": CLIENT_ID,
+                        "user_id": str(CLIENT_ID),
                         "message": text,
                         "system_extra": system_prompt,
                         "use_rag": True,
