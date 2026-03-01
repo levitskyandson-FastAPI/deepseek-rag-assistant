@@ -1,3 +1,11 @@
+import json
+import numpy as np
+from typing import List, Dict, Any, Optional
+from services.db import get_db_pool
+from services.embeddings import get_embedding
+from core.logger import logger  # <-- добавьте эту строку
+from config import settings
+
 async def retrieve_relevant_docs(
     query: str,
     user_id: Optional[str] = None,
