@@ -53,14 +53,14 @@ async def save_session(user_id: int, client_id: str, session: dict):
     async with get_db_pool().acquire() as conn:
         await conn.execute("""
             INSERT INTO sessions (user_id, client_id, conversation, collected, lead_saved, contact_id, lead_id, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, now())
             ON CONFLICT (user_id, client_id) DO UPDATE SET
                 conversation = EXCLUDED.conversation,
                 collected = EXCLUDED.collected,
                 lead_saved = EXCLUDED.lead_saved,
                 contact_id = EXCLUDED.contact_id,
                 lead_id = EXCLUDED.lead_id,
-                updated_at = EXCLUDED.updated_at
+                updated_at = now()
         """,
             user_id,
             client_id,
@@ -68,8 +68,7 @@ async def save_session(user_id: int, client_id: str, session: dict):
             json.dumps(session['collected'], ensure_ascii=False),
             session['lead_saved'],
             session.get('contact_id'),
-            session.get('lead_id'),
-            datetime.now().isoformat()
+            session.get('lead_id')
         )
 
 # ---------- Функции для leads ----------

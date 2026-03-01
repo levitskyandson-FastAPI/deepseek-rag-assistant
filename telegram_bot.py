@@ -576,7 +576,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         "system_extra": system_prompt,
                         "use_rag": True,
                         "context_info": json.dumps(
-                            {"client_id": CLIENT_ID, "source": "telegram"},
+                            {"client_id": str(CLIENT_ID), "source": "telegram"},
                             ensure_ascii=False,
                         ),
                     },
