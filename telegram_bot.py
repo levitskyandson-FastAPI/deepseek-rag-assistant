@@ -438,9 +438,8 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 - Обычно консультации проводятся по телефону или онлайн-демонстрация (Zoom, Google Meet и т.п.).
 - Если клиент представляет крупную компанию и рассматривает корпоративный тариф (с индивидуальными условиями), возможна организация живой встречи. В таком случае предложите согласовать детали с менеджером на консультации.
 
-Если клиент просит изменить:
-- телефон → обнови phone
-- время → обнови preferred_date
+Если клиент просит изменить дату или телефон (используя слова типа "перенеси", "измени", "поменяй", "новое время", "другая дата", "хочу на", "сделай на", "давай на", "перенос" и т.п.), ты обязан вернуть в JSON-блоке поле phone и/или preferred_date с НОВЫМИ значениями. 
+Если клиент просто упоминает дату или время в другом контексте (например, спрашивает о погоде, планах и т.д.), НЕ изменяй эти поля и не возвращай их в JSON-блоке.
 - используй свою логику если клиент назначает или просит перенести "после обеда, "вечером", "утром", "в обед" и допускает в этих словах ошибки или неправильные буквы
 ВАЖНО: Если клиент запросил изменение даты или телефона, обязательно подтверди это изменение в своём ответе, используя актуальные значения из поля collected (они уже обновлены). Например: "Хорошо, изменил дату на 27.02.2026 16:00.".
 
@@ -602,8 +601,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply = JSON_RE.sub("", reply).strip()
             if patch:
                 if session.get("lead_saved"):
-                    allowed_fields = ["phone", "preferred_date"]
-                    filtered_patch = {k: v for k, v in patch.items() if k in allowed_fields}
+                    # Список слов, указывающих на намерение изменить дату/телефон
+                    change_keywords = [
+                        "перенес", "измен", "помен", "новое время", "другая дата",
+                        "хочу на", "сделай на", "давай на", "перенос"
+                    ]
+                    has_change_intent = any(kw in text.lower() for kw in change_keywords)
+                    if has_change_intent:
+                        # Если есть явная просьба – разрешаем обновлять только phone/preferred_date
+                        allowed_fields = ["phone", "preferred_date"]
+                        filtered_patch = {k: v for k, v in patch.items() if k in allowed_fields}
+                        logger.info(f"📦 Явное изменение: применяем {filtered_patch}")
+                    else:
+                        # Нет намерения – игнорируем любые обновления даты/телефона
+                        filtered_patch = {k: v for k, v in patch.items() if k not in ["phone", "preferred_date"]}
+                        logger.info(f"📦 Нет явного изменения: применяем {filtered_patch} (дата/телефон проигнорированы)")
                     apply_patch(session["collected"], filtered_patch)
                 else:
                     apply_patch(session["collected"], patch)
