@@ -617,7 +617,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     # Список слов, указывающих на намерение изменить дату/телефон
                     change_keywords = [
                         "перенес", "измен", "помен", "новое время", "другая дата",
-                        "хочу на", "сделай на", "давай на", "перенос"
+                        "хочу на", "сделай на", "давай на", "перенос", "замени", "смени",
+                        "послезавтра", "завтра", "на послезавтра", "на завтра"
                     ]
                     has_change_intent = any(kw in text.lower() for kw in change_keywords)
                     if has_change_intent:
@@ -661,7 +662,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 logger.exception(e)
 
             if phone_changed or date_changed:
-                await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
+                # ✅ Сохраняем сессию после успешного обновления
+                try:
+                    await save_session(user_id, CLIENT_ID, session)
+                    logger.info("Сессия сохранена после обновления даты/телефона")
+                except Exception as e:
+                    logger.error(f"Ошибка сохранения сессии после обновления: {e}")
+
+                await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="update")
 
         print("COLLECTED:", session["collected"])
         print("MISSING:", missing_required(session["collected"]))
