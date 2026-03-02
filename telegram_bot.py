@@ -561,12 +561,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         old_phone = session["collected"].get("phone")
         old_date = session["collected"].get("preferred_date")
 
-        phone_regex, preferred_date_regex = extract_phone_and_date(text, old_date)
-
-        if phone_regex:
-            session["collected"]["phone"] = phone_regex
-        if preferred_date_regex:
-            session["collected"]["preferred_date"] = preferred_date_regex
+        # До передачи лида пытаемся вытащить данные из текста.
+        # После handoff изменения происходят только через JSON-патч от LLM.
+        if not session.get("lead_saved"):
+            phone_regex, preferred_date_regex = extract_phone_and_date(text, old_date)
+            if phone_regex:
+                session["collected"]["phone"] = phone_regex
+            if preferred_date_regex:
+                session["collected"]["preferred_date"] = preferred_date_regex
 
         history_str = "\n".join(
             f"{m['role']}: {m['content']}"
