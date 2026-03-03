@@ -31,7 +31,8 @@ FIELD_IDS = {
     "volume": 1281937,
     "meeting_time": 1281943,
     "sphere": 1283649,
-   
+    "authority": 1303781,
+    "timeline": 1303783,
 }
 
 # ==========================================================
@@ -267,6 +268,8 @@ class AmoCRM:
                     self._cf("volume", data.get("volume")),
                     self._cf("meeting_time", data.get("meeting_time")),
                     self._cf("sphere", data.get("sphere")),
+                    self._cf("authority", data.get("authority")),
+                    self._cf("timeline", data.get("timeline")),
                     
                 ],
             )

@@ -55,10 +55,11 @@ LEAD_TEMPLATE = {
     "volume": None,           # объём
     "goal": None,             # цель/ожидаемый результат
     "budget": None,           # бюджет
-    "position": None,   # ЛПР
-    
+    "position": None,   # ЛПР   
     "phone": None,            # телефон
     "preferred_date": None,   # когда удобно созвониться
+    "authority_confirmation": None,  # bool или str: "сам", "согласование", "коллегиально"
+    "decision_timeline": None,        # str: "1 месяц", "2-3 месяца", "квартал" и т.п.
 }
 
 # Обязательные поля для отправки лида (SaaS, универсально)
@@ -70,11 +71,12 @@ REQUIRED_FIELDS = [
     "current_process",
     "volume",
     "goal",
-    "budget",
-    
+    "budget",   
     "phone",
     "preferred_date",
     "position",
+    "authority_confirmation",
+    "decision_timeline",
 ]
 
 JSON_RE = re.compile(r"<LEAD_JSON>\s*(\{.*?\})\s*</LEAD_JSON>", re.S)
@@ -221,7 +223,8 @@ def build_lead_summary(collected: dict) -> str:
 Цель: {collected.get('goal')}
 Бюджет: {collected.get('budget')}
 Должность: {collected.get('position')}
-
+ЛПР/согласование: {collected.get('authority_confirmation')}
+Сроки решения: {collected.get('decision_timeline')}
 Телефон: {collected.get('phone')}
 Созвон: {collected.get('preferred_date')}
 """
@@ -302,8 +305,11 @@ def build_system_prompt(history: str, collected: dict) -> str:
     - Если не указана должность — спроси:
     - Подскажите, пожалуйста, какую должность вы занимаете в компании?
     - Если сообщение пользователя выглядит как бессмысленный набор символов (например, "аааа", "рроллпс") или явно не связано с темой, вежливо попросите уточнить запрос.
-      
-      Форматы взаимодействия:
+
+    Для authority_confirmation: после того как должность собрана, спросить «Вы единолично принимаете решение или потребуется согласование с кем-то ещё?»
+    Для decision_timeline: спросить «В какие сроки планируете внедрение/принятие решения?» или «Какой горизонт принятия решения?»
+
+    Форматы взаимодействия:
     - Обычно консультации проводятся по телефону или онлайн-демонстрация (Zoom, Google Meet и т.п.).
     - Если клиент представляет крупную компанию и рассматривает корпоративный тариф (с индивидуальными условиями), возможна организация живой встречи. В таком случае предложите согласовать детали с менеджером на косультации.
 
@@ -679,6 +685,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             "budget": session["collected"].get("budget"),
                             "position": session["collected"].get("position"),
                             "company": session["collected"].get("company"),
+                            "authority": session["collected"].get("authority_confirmation"),
+                            "timeline": session["collected"].get("decision_timeline"),
                         }
                     )
                     session["contact_id"] = amo_ids["contact_id"]
