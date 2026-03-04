@@ -10,12 +10,16 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from routers.chat import router as chat_router
 from routers.documents import router as documents_router
+from routers.avito import router as avito_router            # ← добавлено
 from core.logger import setup_logger
 from config import settings
 from telegram_bot import start, handle_message
 
 # Импорт для работы с PostgreSQL
 from services.db import init_db_pool, close_db_pool, get_all_active_clients
+
+# Импорт воркера Avito (файл avito_worker.py в корне)
+from avito_worker import avito_worker_loop                  # ← добавлено
 
 logger = setup_logger(settings.log_level)
 
@@ -62,7 +66,10 @@ async def lifespan(app: FastAPI):
     # 1. Инициализация пула соединений с PostgreSQL
     await init_db_pool()
 
-    # 2. Загрузка активных клиентов из БД
+    # 2. Запуск фонового воркера Avito
+    asyncio.create_task(avito_worker_loop())                # ← добавлено
+
+    # 3. Загрузка активных клиентов из БД
     clients = await get_all_active_clients()
     if not clients:
         logger.warning("⚠️ Нет активных клиентов в таблице clients")
@@ -83,7 +90,7 @@ async def lifespan(app: FastAPI):
 
     logger.info(f"🤖 Загружено Telegram ботов: {len(telegram_apps)}")
 
-    # 3. Установка вебхуков
+    # 4. Установка вебхуков
     webhook_base = os.getenv("WEBHOOK_URL_BASE")
     if not webhook_base:
         logger.error("❌ WEBHOOK_URL_BASE not set")
@@ -102,7 +109,7 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # 4. Корректное завершение
+    # 5. Корректное завершение
     logger.info("🛑 Lifespan shutdown started...")
     for token, tg_app in telegram_apps.items():
         try:
@@ -136,6 +143,7 @@ app.add_middleware(
 
 app.include_router(chat_router)
 app.include_router(documents_router)
+app.include_router(avito_router)        # ← добавлено
 
 
 # ======================================================

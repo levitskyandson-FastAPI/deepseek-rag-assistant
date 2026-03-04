@@ -31,6 +31,11 @@ class Settings(BaseSettings):
     # Логирование
     log_level: str = "INFO"
 
+    # Avito API
+    avito_client_id: str = ""
+    avito_client_secret: str = ""
+    avito_redirect_uri: str = ""
+
     class Config:
         env_file = ".env"
         extra = "ignore"
