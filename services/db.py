@@ -28,7 +28,14 @@ def get_db_pool() -> asyncpg.Pool:
 async def get_client(client_id: str) -> dict | None:
     async with get_db_pool().acquire() as conn:
         row = await conn.fetchrow("SELECT * FROM clients WHERE id = $1", client_id)
-        return dict(row) if row else None
+        if row:
+            # asyncpg автоматически превращает jsonb в dict, но если нет — можно сделать:
+            data = dict(row)
+            # если поле crm_config пришло как строка — преобразуем
+            if isinstance(data.get('crm_config'), str):
+                data['crm_config'] = json.loads(data['crm_config'])
+            return data
+        return None
 
 async def get_all_active_clients() -> list[dict]:
     async with get_db_pool().acquire() as conn:
