@@ -17,35 +17,41 @@ async def connect_page(client_id: str):
     Страница с кнопкой «Подключить Avito».
     Генерирует ссылку на авторизацию Avito с переданным state = client_id.
     """
-    auth_url = get_auth_url(state=client_id)
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Подключение Avito</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }}
-            .button {{
-                display: inline-block;
-                padding: 15px 30px;
-                font-size: 18px;
-                color: white;
-                background-color: #00AAFF;
-                border-radius: 5px;
-                text-decoration: none;
-                margin-top: 20px;
-            }}
-        </style>
-    </head>
-    <body>
-        <h1>Подключение аккаунта Avito</h1>
-        <p>Нажмите кнопку ниже, чтобы авторизовать ваш аккаунт Avito для работы с AI-ассистентом.</p>
-        <a class="button" href="{auth_url}">Подключить Avito</a>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
+    logger.info(f"connect_page called with client_id={client_id}")
+    try:
+        auth_url = get_auth_url(state=client_id)
+        logger.info(f"auth_url generated: {auth_url}")
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Подключение Avito</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }}
+                .button {{
+                    display: inline-block;
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    color: white;
+                    background-color: #00AAFF;
+                    border-radius: 5px;
+                    text-decoration: none;
+                    margin-top: 20px;
+                }}
+            </style>
+        </head>
+        <body>
+            <h1>Подключение аккаунта Avito</h1>
+            <p>Нажмите кнопку ниже, чтобы авторизовать ваш аккаунт Avito для работы с AI-ассистентом.</p>
+            <a class="button" href="{auth_url}">Подключить Avito</a>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        logger.exception(f"Error in connect_page: {e}")
+        return HTMLResponse(content=f"<h1>Internal error: {e}</h1>", status_code=500)
 
 
 @router.get("/oauth/callback")
@@ -95,6 +101,14 @@ async def oauth_callback(code: str, state: Optional[str] = None):
     except Exception as e:
         logger.error(f"Error in Avito OAuth callback: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error during Avito connection")
+
+
 @router.get("/test")
 async def test():
     return {"status": "avito router works"}
+
+
+@router.get("/test/{param}")
+async def test_param(param: str):
+    """Тестовый параметризованный маршрут для диагностики"""
+    return {"param": param}
