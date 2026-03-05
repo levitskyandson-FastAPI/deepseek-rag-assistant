@@ -95,3 +95,6 @@ async def oauth_callback(code: str, state: Optional[str] = None):
     except Exception as e:
         logger.error(f"Error in Avito OAuth callback: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error during Avito connection")
+@router.get("/test")
+async def test():
+    return {"status": "avito router works"}
