@@ -671,29 +671,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logger.error(f"HANDOFF: save_lead error: {e}")
 
-            if crm:
-                try:
-                    amo_ids = crm.create_lead(
-                        {
-                            "name": session["collected"].get("name"),
-                            "phone": session["collected"].get("phone"),
-                            "problem": session["collected"].get("problem"),
-                            "goal": session["collected"].get("goal"),
-                            "volume": session["collected"].get("volume"),
-                            "meeting_time": session["collected"].get("preferred_date"),
-                            "sphere": session["collected"].get("industry"),
-                            "budget": session["collected"].get("budget"),
-                            "position": session["collected"].get("position"),
-                            "company": session["collected"].get("company"),
-                            "authority": session["collected"].get("authority_confirmation"),
-                            "timeline": session["collected"].get("decision_timeline"),
-                        }
-                    )
-                    session["contact_id"] = amo_ids["contact_id"]
-                    session["lead_id"] = amo_ids["lead_id"]
-                    logger.info(">>> HANDOFF: лид создан в AmoCRM")
-                except Exception as e:
-                    logger.error("HANDOFF: AMO CRM ERROR:", exc_info=True)
+                        # ==== ОТПРАВКА ВО ВСЕ CRM ====
+            crm_results = await send_lead_to_all(CLIENT_DATA, session["collected"])
+            if crm_results:
+                logger.info(f"Результаты отправки в CRM: {crm_results}")
+                # Сохраняем идентификаторы amoCRM для возможных обновлений (если нужно)
+                amo_result = crm_results.get("amo")
+                if amo_result and amo_result.get("success"):
+                    ids = amo_result["ids"]
+                    session["contact_id"] = ids.get("contact_id")
+                    session["lead_id"] = ids.get("lead_id")
+            # =============================
 
             await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
             logger.info(">>> HANDOFF: менеджер уведомлён")
