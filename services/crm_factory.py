@@ -1,4 +1,5 @@
 import importlib
+import json
 from core.logger import logger
 
 CRM_MODULES = {
@@ -8,8 +9,17 @@ CRM_MODULES = {
 
 async def send_lead_to_all(client_data: dict, lead_data: dict) -> dict:
     crm_config = client_data.get("crm_config", {})
+    
+    # Если crm_config пришёл в виде строки — пробуем распарсить
+    if isinstance(crm_config, str):
+        try:
+            crm_config = json.loads(crm_config)
+        except json.JSONDecodeError:
+            logger.error(f"Невозможно распарсить crm_config (строка): {crm_config[:200]}")
+            return {}
+    
     if not isinstance(crm_config, dict):
-        logger.error(f"Некорректный crm_config для клиента {client_data.get('id')}")
+        logger.error(f"Некорректный crm_config для клиента {client_data.get('id')}: {type(crm_config)}")
         return {}
 
     results = {}
