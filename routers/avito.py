@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from typing import Optional
-import json
+import httpx
 
 from core.logger import logger
 from services.db import get_db_pool
@@ -59,15 +59,13 @@ async def oauth_callback(code: str, state: Optional[str] = None):
     if not state:
         raise HTTPException(status_code=400, detail="Missing state (client_id)")
 
-    client_id = state  # state содержит client_id
+    client_id = state
 
     try:
-        # Обмен кода на токены
         token_data = await exchange_code_for_token(code)
         if not token_data:
             raise HTTPException(status_code=400, detail="Failed to obtain tokens")
 
-        # Получаем информацию о пользователе Avito (чтобы получить его ID)
         async with httpx.AsyncClient() as client:
             user_info_resp = await client.get(
                 "https://api.avito.ru/core/v1/accounts/self",
@@ -76,7 +74,6 @@ async def oauth_callback(code: str, state: Optional[str] = None):
             user_info_resp.raise_for_status()
             user_data = user_info_resp.json()
 
-        # Сохраняем аккаунт в БД
         await save_avito_account(
             client_id=client_id,
             avito_user_id=user_data["id"],
@@ -84,7 +81,6 @@ async def oauth_callback(code: str, state: Optional[str] = None):
             token_data=token_data
         )
 
-        # Возвращаем успешную страницу
         return HTMLResponse(content="""
         <!DOCTYPE html>
         <html>

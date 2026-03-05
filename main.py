@@ -15,6 +15,7 @@ from core.logger import setup_logger
 from config import settings
 from telegram_bot import start, handle_message
 
+
 # Импорт для работы с PostgreSQL
 from services.db import init_db_pool, close_db_pool, get_all_active_clients
 
