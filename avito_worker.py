@@ -15,7 +15,7 @@ async def refresh_expired_tokens():
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
             SELECT id, client_id, refresh_token
-            FROM avito_accounts
+            FROM public.avito_accounts
             WHERE token_expires_at < now() + interval '1 hour'
         """)
         for row in rows:
@@ -23,7 +23,7 @@ async def refresh_expired_tokens():
             if token_data:
                 expires_at = datetime.now(timezone.utc) + timedelta(seconds=token_data["expires_in"])
                 await conn.execute("""
-                    UPDATE avito_accounts
+                    UPDATE public.avito_accounts
                     SET access_token = $1, token_expires_at = $2, updated_at = now()
                     WHERE id = $3
                 """, token_data["access_token"], expires_at.isoformat(), row['id'])
@@ -35,7 +35,7 @@ async def fetch_new_messages():
     async with pool.acquire() as conn:
         accounts = await conn.fetch("""
             SELECT id, client_id, access_token, avito_user_id
-            FROM avito_accounts
+            FROM public.avito_accounts
             WHERE token_expires_at > now()
         """)
     for account in accounts:
@@ -66,7 +66,7 @@ async def process_chat_messages(account: Dict[str, Any], chat: Dict[str, Any]):
     # Сохраняем или обновляем чат
     async with pool.acquire() as conn:
         chat_record = await conn.fetchrow("""
-            INSERT INTO avito_chats (avito_account_id, chat_id, chat_type)
+            INSERT INTO public.avito_chats (avito_account_id, chat_id, chat_type)
             VALUES ($1, $2, $3)
             ON CONFLICT (avito_account_id, chat_id) DO UPDATE SET
                 updated_at = now()
@@ -101,14 +101,14 @@ async def process_single_message(
 
     async with pool.acquire() as conn:
         existing = await conn.fetchval("""
-            SELECT id FROM avito_messages
+            SELECT id FROM public.avito_messages
             WHERE avito_chat_id = $1 AND message_id = $2
         """, chat_db_id, msg['id'])
         if existing:
             return  # уже было
 
         await conn.execute("""
-            INSERT INTO avito_messages
+            INSERT INTO public.avito_messages
                 (avito_chat_id, message_id, content, is_from_us, sent_at)
             VALUES ($1, $2, $3, $4, $5)
         """, chat_db_id, msg['id'], msg.get('content', {}).get('text', ''),
