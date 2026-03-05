@@ -13,6 +13,7 @@ print("AMOCRM PATH:", amocrm_module.__file__)
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8")
 
+from services.crm_factory import send_lead_to_all
 from telegram import Update
 from telegram.ext import (
     Application,
