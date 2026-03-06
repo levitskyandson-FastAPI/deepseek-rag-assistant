@@ -29,6 +29,8 @@ from core.logger import logger
 
 # Импорты из нового db-модуля
 from services.db import get_client, get_session, save_session
+from services.notify_factory import send_notifications
+from services.lead_utils import build_lead_summary   # если где-то ещё используется
 
 
 # ======================================================
@@ -212,23 +214,6 @@ def missing_required(collected: dict) -> list[str]:
 def is_ready_for_handoff(collected: dict) -> bool:
     return len(missing_required(collected)) == 0
 
-
-def build_lead_summary(collected: dict) -> str:
-    return f"""
-Имя: {collected.get('name')}
-Компания: {collected.get('company')}
-Сфера: {collected.get('industry')}
-Боль: {collected.get('problem')}
-Как сейчас: {collected.get('current_process')}
-Объём: {collected.get('volume')}
-Цель: {collected.get('goal')}
-Бюджет: {collected.get('budget')}
-Должность: {collected.get('position')}
-ЛПР/согласование: {collected.get('authority_confirmation')}
-Сроки решения: {collected.get('decision_timeline')}
-Телефон: {collected.get('phone')}
-Созвон: {collected.get('preferred_date')}
-"""
 async def load_client(client_id: str):
     # Замена Supabase на PostgreSQL
     client = await get_client(client_id)
@@ -446,31 +431,6 @@ def build_after_handoff_prompt(history: str, collected: dict) -> str:
 """
 
 # ======================================================
-# CRM ADAPTER
-# ======================================================
-
-async def notify_manager(context, lead: dict, manager_chat_id: str | None, event_type: str = "new"):
-    if not manager_chat_id:
-        logger.warning("MANAGER_CHAT_ID is None — notify skipped")
-        return
-
-    if event_type == "new":
-        header = "🔥 Новый лид"
-    else:
-        header = "✏️ Изменения в лиде"
-
-    msg = header + "\n\n" + build_lead_summary(lead)
-
-    try:
-        await context.bot.send_message(
-            chat_id=manager_chat_id,
-            text=msg,
-        )
-    except Exception as e:
-        logger.error(f"Ошибка отправки уведомления менеджеру: {e}")
-
-
-# ======================================================
 # MAIN HANDLER
 # ======================================================
 
@@ -525,7 +485,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 crm_settings = json.loads(crm_settings)
             except:
                 crm_settings = {}
-        MANAGER_CHAT_ID = crm_settings.get("telegram_manager_chat_id") or CLIENT_DATA.get("manager_chat_id")
+        
         AMO_ACCOUNT_KEY = CLIENT_DATA.get("amo_account_key")
 
         crm = None
@@ -646,8 +606,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     logger.info("Сессия сохранена после обновления даты/телефона")
                 except Exception as e:
                     logger.error(f"Ошибка сохранения сессии после обновления: {e}")
+                    await send_notifications(context.bot, CLIENT_DATA, session["collected"], event_type="update")
 
-                await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="update")
+                
 
         print("COLLECTED:", session["collected"])
         print("MISSING:", missing_required(session["collected"]))
@@ -684,7 +645,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     session["lead_id"] = ids.get("lead_id")
             # =============================
 
-            await notify_manager(context, session["collected"], MANAGER_CHAT_ID, event_type="new")
+                        # ==== ОТПРАВКА УВЕДОМЛЕНИЙ ====
+            await send_notifications(context.bot, CLIENT_DATA, session["collected"], event_type="new")
+            # =============================
             logger.info(">>> HANDOFF: менеджер уведомлён")
 
             session["lead_saved"] = True
