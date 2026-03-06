@@ -1,4 +1,5 @@
 import httpx
+import json
 from core.logger import logger
 
 YOUGILE_API_URL = "https://yougile.com/api-v2/tasks"
@@ -9,7 +10,7 @@ async def send_lead(client_config: dict, lead_data: dict) -> dict:
     column_id = client_config.get("column_id")
 
     if not token or not project_id or not column_id:
-        logger.error("YouGile: не хватает параметров в конфигурации")
+        logger.error(f"YouGile: не хватает параметров: token={bool(token)}, project_id={bool(project_id)}, column_id={bool(column_id)}")
         return {"success": False, "error": "missing_params"}
 
     description = (
@@ -41,6 +42,9 @@ async def send_lead(client_config: dict, lead_data: dict) -> dict:
         "Content-Type": "application/json"
     }
 
+    # Логируем запрос для отладки
+    logger.info(f"YouGile payload: {json.dumps(payload, ensure_ascii=False)}")
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(YOUGILE_API_URL, json=payload, headers=headers)
@@ -50,4 +54,10 @@ async def send_lead(client_config: dict, lead_data: dict) -> dict:
             return {"success": True, "ids": {"task_id": result.get("id")}}
     except Exception as e:
         logger.error(f"❌ Ошибка создания задачи в YouGile: {e}")
+        # Логируем тело ответа, если есть
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                logger.error(f"Тело ответа: {e.response.text}")
+            except:
+                pass
         return {"success": False, "error": str(e)}
