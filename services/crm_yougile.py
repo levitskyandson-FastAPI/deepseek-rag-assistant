@@ -34,7 +34,6 @@ async def send_lead(client_config: dict, lead_data: dict) -> dict:
         "description": description,
         "columnId": column_id,
         "archived": False,
-        "_links": {}
     }
 
     headers = {
