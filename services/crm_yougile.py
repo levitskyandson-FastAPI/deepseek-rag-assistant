@@ -1,7 +1,7 @@
 import httpx
 from core.logger import logger
 
-YOUGILE_API_URL = "https://yougile.com/api/v2/tasks"
+YOUGILE_API_URL = "https://yougile.com/api-v2/tasks"
 
 async def send_lead(client_config: dict, lead_data: dict) -> dict:
     token = client_config.get("api_token")
