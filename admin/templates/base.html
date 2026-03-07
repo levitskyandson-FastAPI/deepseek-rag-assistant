@@ -13,8 +13,11 @@
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('clients') }}">Клиенты</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('plans') }}">Тарифы</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('plans_list') }}">Тарифы</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('logs') }}">Логи</a></li>
+                    {% if session.get('admin_role') == 'admin' %}
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('admins_list') }}">Администраторы</a></li>
+                    {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Выход</a></li>
                 </ul>
             </div>

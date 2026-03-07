@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Документы клиента: {{ client_name }}</h1>
+<a href="{{ url_for('upload_document', client_id=client_id) }}" class="btn btn-primary mb-3">Загрузить документ</a>
+<a href="{{ url_for('clients') }}" class="btn btn-secondary mb-3">← Назад к клиентам</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Содержание (первые 200 символов)</th>
+            <th>Метаданные</th>
+            <th>Дата загрузки</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in documents %}
+        <tr>
+            <td>{{ doc.id }}</td>
+            <td>{{ doc.content[:200] }}...</td>
+            <td><pre>{{ doc.metadata | tojson(indent=2) }}</pre></td>
+            <td>{{ doc.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

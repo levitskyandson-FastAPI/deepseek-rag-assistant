@@ -2,6 +2,7 @@
 {% block content %}
 <h1>{% if client %}Редактирование клиента{% else %}Новый клиент{% endif %}</h1>
 <form method="POST">
+  <!-- Основная информация -->
   <div class="mb-3">
     <label for="name" class="form-label">Название компании *</label>
     <input type="text" class="form-control" id="name" name="name" required value="{{ client.name if client else '' }}">
@@ -27,8 +28,104 @@
     <input type="text" class="form-control" id="bot_token" name="bot_token" value="{{ client.bot_token if client else '' }}">
   </div>
   <div class="mb-3">
-    <label for="crm_settings" class="form-label">Настройки CRM (JSON)</label>
-    <textarea class="form-control" id="crm_settings" name="crm_settings" rows="3">{{ client.crm_settings if client else '{}' }}</textarea>
+    <label for="system_prompt" class="form-label">Системный промпт</label>
+    <textarea class="form-control" id="system_prompt" name="system_prompt" rows="3">{{ client.system_prompt if client else '' }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label for="bot_name" class="form-label">Имя бота</label>
+    <input type="text" class="form-control" id="bot_name" name="bot_name" value="{{ client.bot_name if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="bot_role" class="form-label">Роль бота</label>
+    <input type="text" class="form-control" id="bot_role" name="bot_role" value="{{ client.bot_role if client else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="company_description" class="form-label">Описание компании</label>
+    <textarea class="form-control" id="company_description" name="company_description" rows="3">{{ client.company_description if client else '' }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label for="example_questions" class="form-label">Примеры вопросов</label>
+    <textarea class="form-control" id="example_questions" name="example_questions" rows="3">{{ client.example_questions if client else '' }}</textarea>
+  </div>
+
+  <h3 class="mt-4">Настройки CRM</h3>
+  <!-- amoCRM -->
+  <div class="card mb-3">
+    <div class="card-header">amoCRM</div>
+    <div class="card-body">
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="amo_enabled" name="amo_enabled" 
+          {% if client and client.crm_config and client.crm_config.amo and client.crm_config.amo.enabled %}checked{% endif %}>
+        <label class="form-check-label" for="amo_enabled">Включить amoCRM</label>
+      </div>
+      <div class="mb-3">
+        <label for="amo_account_key" class="form-label">Account Key</label>
+        <input type="text" class="form-control" id="amo_account_key" name="amo_account_key" 
+          value="{{ client.crm_config.amo.account_key if client and client.crm_config and client.crm_config.amo else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <!-- YouGile -->
+  <div class="card mb-3">
+    <div class="card-header">YouGile</div>
+    <div class="card-body">
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="yougile_enabled" name="yougile_enabled" 
+          {% if client and client.crm_config and client.crm_config.yougile and client.crm_config.yougile.enabled %}checked{% endif %}>
+        <label class="form-check-label" for="yougile_enabled">Включить YouGile</label>
+      </div>
+      <div class="mb-3">
+        <label for="yougile_api_token" class="form-label">API Token</label>
+        <input type="text" class="form-control" id="yougile_api_token" name="yougile_api_token" 
+          value="{{ client.crm_config.yougile.api_token if client and client.crm_config and client.crm_config.yougile else '' }}">
+      </div>
+      <div class="mb-3">
+        <label for="yougile_project_id" class="form-label">Project ID</label>
+        <input type="text" class="form-control" id="yougile_project_id" name="yougile_project_id" 
+          value="{{ client.crm_config.yougile.project_id if client and client.crm_config and client.crm_config.yougile else '' }}">
+      </div>
+      <div class="mb-3">
+        <label for="yougile_column_id" class="form-label">Column ID</label>
+        <input type="text" class="form-control" id="yougile_column_id" name="yougile_column_id" 
+          value="{{ client.crm_config.yougile.column_id if client and client.crm_config and client.crm_config.yougile else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <!-- Bitrix24 (заготовка) -->
+  <div class="card mb-3">
+    <div class="card-header">Bitrix24</div>
+    <div class="card-body">
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="bitrix_enabled" name="bitrix_enabled" 
+          {% if client and client.crm_config and client.crm_config.bitrix24 and client.crm_config.bitrix24.enabled %}checked{% endif %}>
+        <label class="form-check-label" for="bitrix_enabled">Включить Bitrix24</label>
+      </div>
+      <div class="mb-3">
+        <label for="bitrix_webhook" class="form-label">Webhook URL</label>
+        <input type="text" class="form-control" id="bitrix_webhook" name="bitrix_webhook" 
+          value="{{ client.crm_config.bitrix24.webhook if client and client.crm_config and client.crm_config.bitrix24 else '' }}">
+      </div>
+    </div>
+  </div>
+
+  <h3 class="mt-4">Уведомления</h3>
+  <!-- Telegram -->
+  <div class="card mb-3">
+    <div class="card-header">Telegram</div>
+    <div class="card-body">
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="telegram_notify_enabled" name="telegram_notify_enabled" 
+          {% if client and client.notifications and client.notifications.telegram and client.notifications.telegram.enabled %}checked{% endif %}>
+        <label class="form-check-label" for="telegram_notify_enabled">Включить уведомления в Telegram</label>
+      </div>
+      <div class="mb-3">
+        <label for="telegram_chat_id" class="form-label">Chat ID (менеджера или группы)</label>
+        <input type="number" class="form-control" id="telegram_chat_id" name="telegram_chat_id" 
+          value="{{ client.notifications.telegram.chat_id if client and client.notifications and client.notifications.telegram else '' }}">
+      </div>
+    </div>
   </div>
 
   <h3 class="mt-4">Подписка</h3>
@@ -38,18 +135,20 @@
       <option value="">-- Выберите тариф --</option>
       {% for plan in plans %}
       <option value="{{ plan.id }}" {% if current_sub and current_sub.plan_id == plan.id %}selected{% endif %}>
-        {{ plan.name }} ({{ plan.price }} ₽/мес)
+        {{ plan.name }} ({{ plan.price }} {{ plan.currency }})
       </option>
       {% endfor %}
     </select>
   </div>
   <div class="mb-3">
     <label for="start_date" class="form-label">Дата начала</label>
-    <input type="datetime-local" class="form-control" id="start_date" name="start_date" value="{{ current_sub.start_date[:16] if current_sub and current_sub.start_date else '' }}">
+    <input type="datetime-local" class="form-control" id="start_date" name="start_date" 
+      value="{{ current_sub.start_date.strftime('%Y-%m-%dT%H:%M') if current_sub and current_sub.start_date else '' }}">
   </div>
   <div class="mb-3">
     <label for="end_date" class="form-label">Дата окончания (если ограничена)</label>
-    <input type="datetime-local" class="form-control" id="end_date" name="end_date" value="{{ current_sub.end_date[:16] if current_sub and current_sub.end_date else '' }}">
+    <input type="datetime-local" class="form-control" id="end_date" name="end_date" 
+      value="{{ current_sub.end_date.strftime('%Y-%m-%dT%H:%M') if current_sub and current_sub.end_date else '' }}">
   </div>
   <div class="mb-3">
     <label for="status" class="form-label">Статус подписки</label>
@@ -63,6 +162,10 @@
   <div class="mb-3 form-check">
     <input type="checkbox" class="form-check-input" id="auto_renew" name="auto_renew" {% if current_sub and current_sub.auto_renew %}checked{% endif %}>
     <label class="form-check-label" for="auto_renew">Автопродление</label>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="setup_fee_paid" name="setup_fee_paid" {% if current_sub and current_sub.setup_fee_paid %}checked{% endif %}>
+    <label class="form-check-label" for="setup_fee_paid">Внедрение оплачено (разовый платёж)</label>
   </div>
 
   <button type="submit" class="btn btn-primary">Сохранить</button>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Загрузка документа для {{ client_name }}</h1>
+<form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="file" class="form-label">Выберите файл (.txt или .pdf)</label>
+        <input class="form-control" type="file" id="file" name="file" accept=".txt,.pdf" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Загрузить и обработать</button>
+    <a href="{{ url_for('client_documents', client_id=client_id) }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

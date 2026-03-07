@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # PostgreSQL (Yandex Cloud Managed Service)
     db_host: str = ""
     db_port: int = 6432
-    db_name: str = "db1"
+    db_name: str = "db1_prod"
     db_user: str = "user1"
     db_password: str = ""
 

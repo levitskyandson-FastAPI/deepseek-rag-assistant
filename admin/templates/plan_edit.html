@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if plan %}Редактирование плана{% else %}Новый план{% endif %}</h1>
+<form method="POST">
+  <div class="mb-3">
+    <label for="name" class="form-label">Название *</label>
+    <input type="text" class="form-control" id="name" name="name" required value="{{ plan.name if plan else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="price" class="form-label">Ежемесячная цена *</label>
+    <input type="number" step="0.01" class="form-control" id="price" name="price" required value="{{ plan.price if plan else '' }}">
+  </div>
+  <div class="mb-3">
+    <label for="setup_price" class="form-label">Стоимость внедрения (разово)</label>
+    <input type="number" step="0.01" class="form-control" id="setup_price" name="setup_price" value="{{ plan.setup_price if plan else '0' }}">
+  </div>
+  <div class="mb-3">
+    <label for="currency" class="form-label">Валюта</label>
+    <input type="text" class="form-control" id="currency" name="currency" value="{{ plan.currency if plan else 'RUB' }}">
+  </div>
+  <div class="mb-3">
+    <label for="lead_limit" class="form-label">Лимит лидов (0 - безлимит)</label>
+    <input type="number" class="form-control" id="lead_limit" name="lead_limit" value="{{ plan.lead_limit if plan else '0' }}">
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if plan and plan.is_active %}checked{% endif %}>
+    <label class="form-check-label" for="is_active">Активен</label>
+  </div>
+  <div class="mb-3">
+    <label for="features" class="form-label">Дополнительные возможности (JSON)</label>
+    <textarea class="form-control" id="features" name="features" rows="5">{{ plan.features if plan else '{}' }}</textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+  <a href="{{ url_for('plans_list') }}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

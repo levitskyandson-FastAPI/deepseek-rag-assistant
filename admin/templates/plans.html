@@ -1,5 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Тарифы</h1>
-<p>Список тарифов появится здесь.</p>
+<h1>Тарифные планы</h1>
+<a href="{{ url_for('plan_add') }}" class="btn btn-primary mb-3">Добавить план</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Цена/мес</th>
+            <th>Внедрение</th>
+            <th>Валюта</th>
+            <th>Лимит лидов</th>
+            <th>Активен</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plan in plans %}
+        <tr>
+            <td>{{ plan.name }}</td>
+            <td>{{ plan.price }}</td>
+            <td>{{ plan.setup_price or 0 }}</td>
+            <td>{{ plan.currency }}</td>
+            <td>{{ plan.lead_limit }}</td>
+            <td>{{ 'Да' if plan.is_active else 'Нет' }}</td>
+            <td>
+                <a href="{{ url_for('plan_edit', plan_id=plan.id) }}" class="btn btn-sm btn-warning">Ред.</a>
+                <form action="{{ url_for('plan_delete', plan_id=plan.id) }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить план?')">Уд.</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

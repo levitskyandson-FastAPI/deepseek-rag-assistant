@@ -1,46 +1,21 @@
 import asyncio
 import aiohttp
 import asyncpg
+import json
 from typing import List
 import PyPDF2
 from io import BytesIO
 from tenacity import retry, stop_after_attempt, wait_exponential
-
+from services.db import get_db_pool, init_db_pool, close_db_pool
 from core.logger import logger
-# Если есть settings, можно импортировать, но здесь используем прямые значения
-# from config import settings
 from config import settings
-# ========== КОНФИГУРАЦИЯ (ваши данные) ==========
-DB_PASSWORD = "kS8-i8t-XJg-eJD"
-DB_HOST = "rc1b-f309n3otbdih0f46.mdb.yandexcloud.net"
-DB_PORT = 6432
-DB_NAME = "db1"
-DB_USER = "user1"
-DB_DSN = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?ssl=require"
 
+# ========== КОНФИГУРАЦИЯ ==========
 YC_FOLDER_ID = settings.yc_folder_id
 YC_API_KEY = settings.yc_api_key
 EMBEDDING_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/textEmbedding"
 EMBEDDING_MODEL = "text-search-doc"  # для документов
-# ==============================================
-
-# Глобальный пул соединений
-_pool = None
-
-async def init_db_pool():
-    global _pool
-    _pool = await asyncpg.create_pool(DB_DSN, min_size=1, max_size=10)
-    logger.info("✅ Пул соединений с БД создан")
-
-async def close_db_pool():
-    if _pool:
-        await _pool.close()
-        logger.info("🔌 Пул соединений закрыт")
-
-def get_db_pool() -> asyncpg.Pool:
-    if _pool is None:
-        raise RuntimeError("Пул БД не инициализирован")
-    return _pool
+# ==================================
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def get_embedding(text: str) -> List[float]:
@@ -106,11 +81,13 @@ async def extract_text_from_file(file) -> str:
 async def process_document(client_id: str, file, metadata: dict) -> int:
     """
     Обработка документа: разбивка на чанки, генерация эмбеддингов, сохранение в PostgreSQL.
-    client_id — UUID клиента (например, '112e1504-1724-4c46-9d1d-bb8fb4c5cffe')
     """
-    pool = get_db_pool()
+    logger.info(f"🔍 process_document: client_id={client_id}, file={file.filename if file else 'None'}")
     try:
-        logger.info(f"process_document: начало, файл {file.filename}")
+        pool = get_db_pool()
+        logger.info(f"process_document: получен пул: {pool}")
+        
+        logger.info("process_document: начало извлечения текста из файла")
         text = await extract_text_from_file(file)
         if not text.strip():
             logger.warning(f"Файл {file.filename} не содержит текста")
@@ -127,7 +104,9 @@ async def process_document(client_id: str, file, metadata: dict) -> int:
         }
         
         success_count = 0
+        logger.info("process_document: попытка получить соединение из пула")
         async with pool.acquire() as conn:
+            logger.info("process_document: соединение получено, начинаем обработку чанков")
             for i, chunk in enumerate(chunks):
                 chunk_metadata = {
                     **doc_metadata,
@@ -135,20 +114,28 @@ async def process_document(client_id: str, file, metadata: dict) -> int:
                     "chunk_size": len(chunk)
                 }
                 try:
+                    logger.info(f"Обработка чанка {i+1}/{len(chunks)}")
                     embedding = await get_embedding(chunk)
-                    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+                    logger.info(f"Тип embedding: {type(embedding)}, длина: {len(embedding)}")
+                    logger.info(f"Первые 5 значений: {embedding[:5]}")
+                    logger.info(f"chunk_metadata: {chunk_metadata}")
+                    
+                    # Вставляем список чисел напрямую – pgvector преобразует в тип vector
                     await conn.execute("""
                         INSERT INTO documents (content, metadata, embedding, client_id)
-                        VALUES ($1, $2::jsonb, $3::vector, $4)
-                    """, chunk, chunk_metadata, embedding_str, client_id)
+                        VALUES ($1, $2::jsonb, $3, $4)
+                    """, chunk, chunk_metadata, embedding, client_id)
+                    
                     success_count += 1
+                    logger.info(f"Чанк {i+1} успешно сохранён")
                 except Exception as e:
-                    logger.error(f"Ошибка при обработке чанка {i}: {e}")
+                    logger.error(f"Ошибка при обработке чанка {i}: {e}", exc_info=True)
+                    continue
         
         logger.info(f"Успешно сохранено {success_count} из {len(chunks)} чанков для {file.filename}")
         return success_count
     except Exception as e:
-        logger.error(f"Критическая ошибка при обработке {file.filename}: {e}", exc_info=True)
+        logger.error(f"process_document: критическая ошибка: {e}", exc_info=True)
         raise
 
 async def update_missing_embeddings(client_id: str):
@@ -170,11 +157,10 @@ async def update_missing_embeddings(client_id: str):
         content = row["content"]
         try:
             embedding = await get_embedding(content)
-            embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
             async with pool.acquire() as conn:
                 await conn.execute("""
-                    UPDATE documents SET embedding = $1::vector WHERE id = $2
-                """, embedding_str, doc_id)
+                    UPDATE documents SET embedding = $1 WHERE id = $2
+                """, embedding, doc_id)
             logger.info(f"Документ {doc_id} обновлён")
         except Exception as e:
             logger.error(f"Ошибка при обновлении документа {doc_id}: {e}")
@@ -182,7 +168,6 @@ async def update_missing_embeddings(client_id: str):
 # Для самостоятельного запуска обновления
 async def main():
     await init_db_pool()
-    # Укажите UUID вашего клиента (например, для Levitsky)
     client_id = "112e1504-1724-4c46-9d1d-bb8fb4c5cffe"
     await update_missing_embeddings(client_id)
     await close_db_pool()

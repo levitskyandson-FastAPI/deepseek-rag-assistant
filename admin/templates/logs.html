@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Логи использования</h1>
+<form method="GET" class="row g-3 mb-3">
+    <div class="col-auto">
+        <select name="client_id" class="form-select">
+            <option value="">Все клиенты</option>
+            {% for client in clients %}
+            <option value="{{ client.id }}" {% if selected_client == client.id %}selected{% endif %}>{{ client.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Фильтр</button>
+    </div>
+</form>
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Клиент</th>
+            <th>Тип события</th>
+            <th>Метаданные</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.event_date }}</td>
+            <td>{{ log.client_name }}</td>
+            <td>{{ log.event_type }}</td>
+            <td><pre>{{ log.metadata | tojson(indent=2) }}</pre></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Администраторы</h1>
+<a href="{{ url_for('admin_add') }}" class="btn btn-primary mb-3">Добавить администратора</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Логин</th>
+            <th>Роль</th>
+            <th>Дата создания</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for admin in admins %}
+        <tr>
+            <td>{{ admin.username }}</td>
+            <td>{{ admin.role }}</td>
+            <td>{{ admin.created_at }}</td>
+            <td>
+                <a href="{{ url_for('admin_edit', admin_id=admin.id) }}" class="btn btn-sm btn-warning">Ред.</a>
+                {% if admin.id != session.admin_id %}
+                <form action="{{ url_for('admin_delete', admin_id=admin.id) }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить?')">Уд.</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

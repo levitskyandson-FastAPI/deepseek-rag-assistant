@@ -8,6 +8,8 @@
             <th>Название</th>
             <th>Контакты</th>
             <th>Активен</th>
+            <th>Внедрение</th>
+            <th>Использование</th>
             <th></th>
         </tr>
     </thead>
@@ -17,7 +19,29 @@
             <td>{{ client.name }}</td>
             <td>{{ client.contact_email }}<br>{{ client.contact_phone }}</td>
             <td>{{ 'Да' if client.is_active else 'Нет' }}</td>
-            <td><a href="{{ url_for('client_edit', client_id=client.id) }}" class="btn btn-sm btn-warning">Ред.</a></td>
+            <td>
+                {% if client.subscription and client.subscription['setup_fee_paid'] %}
+                    ✅
+                {% else %}
+                    ❌
+                {% endif %}
+            </td>
+            <td>
+                {% if client.subscription %}
+                    Лиды: {{ client.usage.leads_used }} / 
+                    {% if client.subscription.lead_limit == -1 %}∞{% else %}{{ client.subscription.lead_limit }}{% endif %}<br>
+                    Документы: {{ client.usage.docs_used }} / 
+                    {% if client.subscription.features and client.subscription.features.documents_limit %}
+                        {{ client.subscription.features.documents_limit }}
+                    {% else %}0{% endif %}
+                {% else %}
+                    Нет подписки
+                {% endif %}
+            </td>
+            <td>
+                <a href="{{ url_for('client_edit', client_id=client.id) }}" class="btn btn-sm btn-warning">Ред.</a>
+                <a href="{{ url_for('client_documents', client_id=client.id) }}" class="btn btn-sm btn-info" title="Документы">📄</a>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
