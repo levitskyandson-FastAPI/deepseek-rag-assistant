@@ -6,7 +6,7 @@ from config import settings
 from pgvector.asyncpg import register_vector
 
 # Строка подключения из настроек (без SSL, т.к. сервер не поддерживает)
-DB_DSN = f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}?ssl=disable"
+DB_DSN = f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
 
 _pool = None
 
