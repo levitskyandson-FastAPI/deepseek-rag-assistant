@@ -16,3 +16,8 @@ aiohttp
 yandex-neural-api  # если используете библиотеку, но в нашем скрипте мы использовали прямой aiohttp
 numpy
 pgvector>=0.4.2
+onnx-asr==0.1.2
+pydub==0.25.1
+scipy==1.14.0onnx-asr>=0.10.2
+pydub>=0.25.1
+scipy>=1.14.0
