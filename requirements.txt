@@ -3,7 +3,7 @@ uvicorn
 python-dotenv
 httpx
 supabase
-python-telegram-bot
+python-telegram-bot>=20.0
 nest_asyncio
 loguru
 tenacity
@@ -13,13 +13,10 @@ pydantic-settings
 openai
 asyncpg
 aiohttp
-yandex-neural-api  # если используете библиотеку, но в нашем скрипте мы использовали прямой aiohttp
-numpy
+yandex-neural-api
+numpy<2.0.0
 pgvector>=0.4.2
-onnx-asr==0.1.2
-pydub==0.25.1
-scipy==1.14.0onnx-asr>=0.10.2
-pydub>=0.25.1
-scipy>=1.14.0
-onnxruntime>=1.20.0
-huggingface_hub>=0.29.0
+pydub
+scipy
+tone @ git+https://github.com/voicekit-team/T-one.git
+miniaudio
