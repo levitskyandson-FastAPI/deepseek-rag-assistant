@@ -21,3 +21,4 @@ pydub==0.25.1
 scipy==1.14.0onnx-asr>=0.10.2
 pydub>=0.25.1
 scipy>=1.14.0
+onnxruntime>=1.20.0
