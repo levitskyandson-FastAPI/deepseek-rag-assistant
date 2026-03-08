@@ -44,16 +44,13 @@ async def retrieve_relevant_docs(
         docs = []
         for row in rows:
             try:
-                # embedding уже должен быть списком чисел (благодаря register_vector)
                 embedding = row['embedding']
                 if embedding is None:
                     continue
-                # Проверяем, что это список чисел
-                if not isinstance(embedding, list):
-                    logger.warning(f"Документ {row['id']}: embedding не является списком, тип {type(embedding)}")
-                    continue
+                # Если это уже numpy array, преобразуем в массив для вычислений
+                # pgvector может вернуть как list, так и numpy.ndarray
                 emb_array = np.array(embedding, dtype=np.float32)
-
+                
                 # Обработка метаданных (могут быть строкой или словарём)
                 metadata = row['metadata']
                 if isinstance(metadata, str):
@@ -71,11 +68,11 @@ async def retrieve_relevant_docs(
                     'embedding': emb_array
                 })
             except Exception as e:
-                logger.warning(f"Ошибка парсинга документа {row['id']}: {e}", exc_info=True)
+                logger.warning(f"Ошибка обработки документа {row['id']}: {e}", exc_info=True)
                 continue
 
         if not docs:
-            logger.info("RAG: нет документов после парсинга")
+            logger.info("RAG: нет документов после обработки")
             return []
 
         query_array = np.array(query_embedding, dtype=np.float32)
