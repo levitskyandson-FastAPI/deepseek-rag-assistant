@@ -11,10 +11,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import tempfile
 import aiofiles
-import os
+
+# Принудительно задаём имя базы (для совместимости)
 os.environ['DB_NAME'] = 'db1_prod'
 
-# Добавляем путь к корню проекта, чтобы импортировать process_document и функции БД
+# Добавляем путь к корню проекта
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from services.embeddings import process_document
@@ -34,7 +35,7 @@ DB_PARAMS = {
     "dbname": os.getenv("DB_NAME"),
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWORD"),
-    "sslmode": "require"
+    "sslmode": "disable"
 }
 
 def get_db_connection():
@@ -69,7 +70,11 @@ def get_client_usage(client_id):
     """, (client_id,))
     leads_count = cur.fetchone()[0] or 0
     # Количество документов (чанков)
-    cur.execute("SELECT COUNT(*) FROM documents WHERE client_id = %s", (client_id,))
+    cur.execute("""
+        SELECT COUNT(DISTINCT metadata->>'filename')
+        FROM documents
+        WHERE client_id = %s AND metadata->>'filename' IS NOT NULL
+    """, (client_id,))
     docs_count = cur.fetchone()[0] or 0
     cur.close()
     conn.close()
@@ -510,16 +515,37 @@ def client_documents(client_id):
     if not client_name:
         flash("Клиент не найден")
         return redirect(url_for("clients"))
+    
+    # Получаем все чанки для клиента
     cur.execute("""
         SELECT id, content, metadata, created_at
         FROM documents
         WHERE client_id = %s
         ORDER BY created_at DESC
     """, (client_id,))
-    docs = cur.fetchall()
+    rows = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template("documents.html", client_id=client_id, client_name=client_name[0], documents=docs)
+
+    # Группируем по имени файла
+    documents_by_file = {}
+    for row in rows:
+        doc = dict(row)
+        filename = doc['metadata'].get('filename', 'Без имени')
+        if filename not in documents_by_file:
+            documents_by_file[filename] = {
+                'filename': filename,
+                'chunks': [],
+                'first_created': doc['created_at'],
+                'chunk_count': 0
+            }
+        documents_by_file[filename]['chunks'].append(doc)
+        documents_by_file[filename]['chunk_count'] += 1
+        if doc['created_at'] < documents_by_file[filename]['first_created']:
+            documents_by_file[filename]['first_created'] = doc['created_at']
+
+    document_groups = list(documents_by_file.values())
+    return render_template("documents.html", client_id=client_id, client_name=client_name[0], document_groups=document_groups)
 
 @app.route("/client/<client_id>/upload", methods=["GET", "POST"])
 def upload_document(client_id):
@@ -558,12 +584,10 @@ def upload_document(client_id):
 
         # Асинхронная функция ингеста
         async def ingest():
-            # Инициализируем пул БД, если не инициализирован
             try:
                 get_db_pool()
             except RuntimeError:
                 await init_db_pool()
-            # Проверяем, что пул действительно создан
             try:
                 pool = get_db_pool()
                 logger.info(f"✅ Пул получен: {pool}")
@@ -588,7 +612,6 @@ def upload_document(client_id):
                 logger.error(f"Ошибка ингеста: {e}", exc_info=True)
                 raise
 
-        # Используем глобальный цикл событий (инициализирован ниже)
         try:
             result = loop.run_until_complete(ingest())
             flash(f"Документ загружен, создано {result} чанков")
@@ -600,6 +623,31 @@ def upload_document(client_id):
         return redirect(url_for('client_documents', client_id=client_id))
 
     return render_template("upload_document.html", client_id=client_id, client_name=client_name[0])
+
+# ---------- Удаление документа по имени файла ----------
+@app.route("/client/<client_id>/delete_document_by_filename", methods=["POST"])
+def delete_document_by_filename(client_id):
+    redirect_resp = check_auth('manager')
+    if redirect_resp:
+        return redirect_resp
+    filename = request.form.get('filename')
+    if not filename:
+        flash("Не указано имя файла")
+        return redirect(url_for('client_documents', client_id=client_id))
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        DELETE FROM documents
+        WHERE client_id = %s AND metadata->>'filename' = %s
+    """, (client_id, filename))
+    deleted = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    flash(f"Удалено {deleted} чанков документа «{filename}»")
+    return redirect(url_for('client_documents', client_id=client_id))
 
 # ---------- Логи ----------
 @app.route("/logs")

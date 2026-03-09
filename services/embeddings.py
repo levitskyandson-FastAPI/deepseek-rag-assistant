@@ -120,17 +120,23 @@ async def process_document(client_id: str, file, metadata: dict) -> int:
                     logger.info(f"Первые 5 значений: {embedding[:5]}")
                     logger.info(f"chunk_metadata: {chunk_metadata}")
                     
-                    # Вставляем список чисел напрямую – pgvector преобразует в тип vector
+                    # Преобразуем метаданные в JSON-строку (обязательно для jsonb)
+                    metadata_json = json.dumps(chunk_metadata, ensure_ascii=False)
+                    logger.info(f"metadata_json (первые 200): {metadata_json[:200]}")
+                    
+                    logger.info(f"👉 Попытка вставки чанка {i+1}")
+                    # embedding передаётся как список чисел – pgvector преобразует в vector
                     await conn.execute("""
                         INSERT INTO documents (content, metadata, embedding, client_id)
-                        VALUES ($1, $2::jsonb, $3, $4)
-                    """, chunk, chunk_metadata, embedding, client_id)
+                        VALUES ($1, $2::jsonb, $3::vector, $4)
+                    """, chunk, metadata_json, embedding, client_id)
+                    logger.info(f"✅ После выполнения INSERT для чанка {i+1}")
                     
                     success_count += 1
                     logger.info(f"Чанк {i+1} успешно сохранён")
                 except Exception as e:
-                    logger.error(f"Ошибка при обработке чанка {i}: {e}", exc_info=True)
-                    continue
+                    logger.exception(f"❌ Ошибка при обработке чанка {i}")
+                    raise
         
         logger.info(f"Успешно сохранено {success_count} из {len(chunks)} чанков для {file.filename}")
         return success_count

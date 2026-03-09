@@ -82,3 +82,690 @@
 2026-02-24 19:17:19.583 | INFO     | main:lifespan:66 - 🏢 SaaS клиентов: 2
 2026-02-24 19:17:19.583 | ERROR    | main:lifespan:71 - ❌ WEBHOOK_URL_BASE not set
 2026-02-24 19:17:21.506 | INFO     | main:lifespan:91 - 🛑 Завершение работы...
+2026-03-08 16:47:08.831 | INFO     | __main__:init_stt_model:48 - 🎤 Загрузка модели GigaAM...
+2026-03-08 16:47:58.753 | INFO     | __main__:init_stt_model:48 - 🎤 Загрузка модели GigaAM...
+2026-03-08 16:51:17.137 | INFO     | __main__:init_stt_model:54 - 🎤 Загрузка модели GigaAM...
+2026-03-08 16:53:28.262 | INFO     | __main__:init_stt_model:57 - 🎤 Загрузка модели GigaAM...
+2026-03-08 16:58:10.914 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 16:59:21.603 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:00:07.797 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:02:31.139 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:06:50.714 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:07:14.667 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:09:38.318 | INFO     | __main__:init_stt_model:40 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:09:39.349 | INFO     | __main__:init_stt_model:48 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 17:09:39.388 | INFO     | __main__:<module>:104 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 17:14:17.479 | INFO     | __main__:init_stt_model:40 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:14:18.607 | INFO     | __main__:init_stt_model:48 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 17:14:18.645 | INFO     | __main__:<module>:107 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 17:16:44.519 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 17:16:44.520 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:16:45.518 | INFO     | __main__:init_stt_model:46 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 17:16:45.555 | INFO     | __main__:<module>:110 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 17:18:20.881 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 17:18:20.882 | INFO     | __main__:main:94 - ✅ Пул БД инициализирован
+2026-03-08 17:18:20.883 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:18:21.791 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 17:18:21.831 | INFO     | __main__:main:114 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 17:18:21.855 | INFO     | services.db:close_db_pool:25 - 🔌 Пул соединений закрыт
+2026-03-08 17:19:38.727 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 17:19:38.727 | INFO     | __main__:main:77 - ✅ Пул БД инициализирован
+2026-03-08 17:19:38.727 | INFO     | __main__:init_stt_model:31 - 🎤 Загрузка модели GigaAM...
+2026-03-08 17:19:39.579 | INFO     | __main__:init_stt_model:36 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 17:19:39.616 | INFO     | __main__:main:96 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:07:27.994 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:07:27.995 | INFO     | __main__:main:95 - ✅ Пул БД инициализирован
+2026-03-08 19:07:27.995 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 19:07:28.987 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:07:29.027 | INFO     | __main__:main:118 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:07:29.038 | INFO     | services.db:close_db_pool:25 - 🔌 Пул соединений закрыт
+2026-03-08 19:10:10.330 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:10:10.332 | INFO     | __main__:main:95 - ✅ Пул БД инициализирован
+2026-03-08 19:10:10.333 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 19:10:11.272 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:10:11.309 | INFO     | __main__:main:118 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:14:28.935 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:14:28.935 | INFO     | __main__:main:95 - ✅ Пул БД инициализирован
+2026-03-08 19:14:28.935 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 19:14:30.081 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:14:30.120 | INFO     | __main__:main:118 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:15:05.709 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 19:15:10.332 | INFO     | __main__:handle_voice:76 - 📝 Распознанный текст: 
+2026-03-08 19:15:10.332 | ERROR    | __main__:handle_voice:83 - Ошибка обработки голоса: Attribute `text` of class `Message` can't be set!
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 138, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x10450fce0>
+    │       └ <function run at 0x1006ed6c0>
+    └ <module 'asyncio' from '/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/__init__.py'>
+
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x104213a60>
+           │      └ <function Runner.run at 0x10077d3a0>
+           └ <asyncio.runners.Runner object at 0x10450abd0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py:127> w...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x10077af20>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x10450abd0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 672, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x10077ae80>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 639, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x10077ccc0>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 1985, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x1006c27a0>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1092492a0>()>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1092492a0>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1092492a0>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1092492a0>()>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1233, in _update_fetcher
+    await self.__update_fetcher()
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1229, in __update_fetcher
+    await self.__process_update_wrapper(update)
+          │                             └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1244, in __process_update_wrapper
+    await self._update_processor.process_update(update, self.process_update(update))
+          │    │                                │       │    │              └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    │                                │       │    └ <function Application.process_update at 0x103c4d9e0>
+          │    │                                │       └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+          │    │                                └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <member '_update_processor' of 'Application' objects>
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 171, in process_update
+    await self.do_process_update(update, coroutine)
+          │    │                 │       └ <coroutine object Application.process_update at 0x1051cde40>
+          │    │                 └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <function SimpleUpdateProcessor.do_process_update at 0x103c4efc0>
+          └ <telegram.ext._baseupdateprocessor.SimpleUpdateProcessor object at 0x104522250>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 196, in do_process_update
+    await coroutine
+          └ <coroutine object Application.process_update at 0x1051cde40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1315, in process_update
+    await coroutine
+          └ <coroutine object BaseHandler.handle_update at 0x109268a40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_handlers/basehandler.py", line 159, in handle_update
+    return await self.callback(update, context)
+                 │    │        │       └ <telegram.ext._callbackcontext.CallbackContext object at 0x109244830>
+                 │    │        └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+                 │    └ <member 'callback' of 'BaseHandler' objects>
+                 └ MessageHandler[callback=handle_voice]
+
+> File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 79, in handle_voice
+    update.message.text = text
+    │      │              └ ''
+    │      └ <member 'message' of 'Update' objects>
+    └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/_telegramobject.py", line 161, in __setattr__
+    raise AttributeError(
+
+AttributeError: Attribute `text` of class `Message` can't be set!
+2026-03-08 19:17:40.336 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:17:40.337 | INFO     | __main__:main:95 - ✅ Пул БД инициализирован
+2026-03-08 19:17:40.338 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 19:17:41.575 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:17:41.618 | INFO     | __main__:main:118 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:18:04.386 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 19:18:05.730 | INFO     | __main__:handle_voice:76 - 📝 Распознанный текст: 
+2026-03-08 19:18:05.730 | ERROR    | __main__:handle_voice:83 - Ошибка обработки голоса: Attribute `text` of class `Message` can't be set!
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 138, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x104de7c40>
+    │       └ <function run at 0x100f81620>
+    └ <module 'asyncio' from '/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/__init__.py'>
+
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x104aeba60>
+           │      └ <function Runner.run at 0x101011300>
+           └ <asyncio.runners.Runner object at 0x104ddf4a0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py:127> w...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x10100ee80>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x104ddf4a0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 672, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x10100ede0>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 639, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x101010c20>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 1985, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x100f56700>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11774a590>()>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11774a590>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11774a590>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11774a590>()>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1233, in _update_fetcher
+    await self.__update_fetcher()
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1229, in __update_fetcher
+    await self.__process_update_wrapper(update)
+          │                             └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1244, in __process_update_wrapper
+    await self._update_processor.process_update(update, self.process_update(update))
+          │    │                                │       │    │              └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    │                                │       │    └ <function Application.process_update at 0x104521940>
+          │    │                                │       └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+          │    │                                └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <member '_update_processor' of 'Application' objects>
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 171, in process_update
+    await self.do_process_update(update, coroutine)
+          │    │                 │       └ <coroutine object Application.process_update at 0x10594de40>
+          │    │                 └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <function SimpleUpdateProcessor.do_process_update at 0x104522f20>
+          └ <telegram.ext._baseupdateprocessor.SimpleUpdateProcessor object at 0x104df62d0>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 196, in do_process_update
+    await coroutine
+          └ <coroutine object Application.process_update at 0x10594de40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1315, in process_update
+    await coroutine
+          └ <coroutine object BaseHandler.handle_update at 0x117768a40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_handlers/basehandler.py", line 159, in handle_update
+    return await self.callback(update, context)
+                 │    │        │       └ <telegram.ext._callbackcontext.CallbackContext object at 0x1177447c0>
+                 │    │        └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+                 │    └ <member 'callback' of 'BaseHandler' objects>
+                 └ MessageHandler[callback=handle_voice]
+
+> File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 79, in handle_voice
+    update.message.text = text
+    │      │              └ ''
+    │      └ <member 'message' of 'Update' objects>
+    └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/_telegramobject.py", line 161, in __setattr__
+    raise AttributeError(
+
+AttributeError: Attribute `text` of class `Message` can't be set!
+2026-03-08 19:21:17.316 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:21:17.317 | INFO     | __main__:main:94 - ✅ Пул БД инициализирован
+2026-03-08 19:21:17.317 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM...
+2026-03-08 19:21:18.267 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:21:18.307 | INFO     | __main__:main:117 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:22:13.575 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 19:22:14.772 | INFO     | __main__:handle_voice:76 - 📝 Распознанный текст: 
+2026-03-08 19:25:33.873 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:25:33.874 | INFO     | __main__:main:119 - ✅ Пул БД инициализирован
+2026-03-08 19:25:33.875 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM (CTC)...
+2026-03-08 19:26:45.346 | INFO     | __main__:init_stt_model:48 - ✅ Модель GigaAM (CTC) загружена и готова к работе
+2026-03-08 19:26:45.377 | INFO     | __main__:main:142 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:27:24.883 | INFO     | __main__:handle_voice:55 - 🎤 Получено голосовое сообщение
+2026-03-08 19:27:26.470 | INFO     | __main__:handle_voice:68 - 📁 OGG файл скачан, размер: 12162 байт
+2026-03-08 19:27:26.589 | INFO     | __main__:handle_voice:73 - ⏱️ Длительность аудио: 2.85 сек
+2026-03-08 19:27:26.591 | INFO     | __main__:handle_voice:79 - 📊 WAV файл создан, размер: 182668 байт
+2026-03-08 19:27:26.592 | INFO     | __main__:handle_voice:91 - 🔊 Максимальная амплитуда: 18747.1699
+2026-03-08 19:27:26.725 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 19:27:39.574 | INFO     | __main__:handle_voice:55 - 🎤 Получено голосовое сообщение
+2026-03-08 19:27:41.204 | INFO     | __main__:handle_voice:68 - 📁 OGG файл скачан, размер: 9967 байт
+2026-03-08 19:27:41.309 | INFO     | __main__:handle_voice:73 - ⏱️ Длительность аудио: 2.29 сек
+2026-03-08 19:27:41.311 | INFO     | __main__:handle_voice:79 - 📊 WAV файл создан, размер: 146828 байт
+2026-03-08 19:27:41.311 | INFO     | __main__:handle_voice:91 - 🔊 Максимальная амплитуда: 30882.3711
+2026-03-08 19:27:41.421 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 19:28:14.514 | INFO     | __main__:handle_voice:55 - 🎤 Получено голосовое сообщение
+2026-03-08 19:28:15.563 | INFO     | __main__:handle_voice:68 - 📁 OGG файл скачан, размер: 12406 байт
+2026-03-08 19:28:15.646 | INFO     | __main__:handle_voice:73 - ⏱️ Длительность аудио: 2.91 сек
+2026-03-08 19:28:15.649 | INFO     | __main__:handle_voice:79 - 📊 WAV файл создан, размер: 186508 байт
+2026-03-08 19:28:15.649 | INFO     | __main__:handle_voice:91 - 🔊 Максимальная амплитуда: 23429.5215
+2026-03-08 19:28:15.783 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 19:34:49.152 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:34:49.153 | INFO     | __main__:main:121 - ✅ Пул БД инициализирован
+2026-03-08 19:34:49.153 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM-RNNT через transformers...
+2026-03-08 19:36:46.411 | INFO     | __main__:init_stt_model:53 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:36:46.482 | INFO     | __main__:main:141 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:37:35.415 | INFO     | __main__:handle_voice:60 - 🎤 Получено голосовое сообщение
+2026-03-08 19:37:36.435 | INFO     | __main__:handle_voice:71 - 📁 OGG файл скачан, размер: 11855 байт
+2026-03-08 19:37:36.538 | INFO     | __main__:handle_voice:76 - ⏱️ Длительность аудио: 2.77 сек
+2026-03-08 19:37:36.541 | INFO     | __main__:handle_voice:80 - 📊 WAV файл создан, размер: 177548 байт
+2026-03-08 19:37:36.541 | ERROR    | __main__:handle_voice:110 - Ошибка обработки голоса: Couldn't find appropriate backend to handle uri /var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp2z7n5nbc.wav and format None.
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 158, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x11038a0c0>
+    │       └ <function run at 0x10363a520>
+    └ <module 'asyncio' from '/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/__init__.py'>
+
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x11030e110>
+           │      └ <function Runner.run at 0x1036ca200>
+           └ <asyncio.runners.Runner object at 0x11037dbe0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py:148> w...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x1036bfd80>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x11037dbe0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 672, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x1036bfce0>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 639, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x1036c9b20>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 1985, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x103613600>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fae6890>()>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fae6890>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fae6890>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fae6890>()>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1233, in _update_fetcher
+    await self.__update_fetcher()
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1229, in __update_fetcher
+    await self.__process_update_wrapper(update)
+          │                             └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1244, in __process_update_wrapper
+    await self._update_processor.process_update(update, self.process_update(update))
+          │    │                                │       │    │              └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    │                                │       │    └ <function Application.process_update at 0x10a568720>
+          │    │                                │       └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+          │    │                                └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <member '_update_processor' of 'Application' objects>
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 171, in process_update
+    await self.do_process_update(update, coroutine)
+          │    │                 │       └ <coroutine object Application.process_update at 0x11fab4e00>
+          │    │                 └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <function SimpleUpdateProcessor.do_process_update at 0x10a569d00>
+          └ <telegram.ext._baseupdateprocessor.SimpleUpdateProcessor object at 0x1103907d0>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 196, in do_process_update
+    await coroutine
+          └ <coroutine object Application.process_update at 0x11fab4e00>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1315, in process_update
+    await coroutine
+          └ <coroutine object BaseHandler.handle_update at 0x11fafc640>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_handlers/basehandler.py", line 159, in handle_update
+    return await self.callback(update, context)
+                 │    │        │       └ <telegram.ext._callbackcontext.CallbackContext object at 0x11fabac10>
+                 │    │        └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+                 │    └ <member 'callback' of 'BaseHandler' objects>
+                 └ MessageHandler[callback=handle_voice]
+
+> File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 83, in handle_voice
+    waveform, sample_rate = torchaudio.load(wav_path)
+                            │          │    └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp2z7n5nbc.wav'
+                            │          └ <function get_load_func.<locals>.load at 0x108891ee0>
+                            └ <module 'torchaudio' from '/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio...
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio/_backend/utils.py", line 204, in load
+    backend = dispatcher(uri, format, backend)
+              │          │    │       └ None
+              │          │    └ None
+              │          └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp2z7n5nbc.wav'
+              └ <function get_load_func.<locals>.dispatcher at 0x108891e40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio/_backend/utils.py", line 116, in dispatcher
+    raise RuntimeError(f"Couldn't find appropriate backend to handle uri {uri} and format {format}.")
+                                                                          │                └ None
+                                                                          └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp2z7n5nbc.wav'
+
+RuntimeError: Couldn't find appropriate backend to handle uri /var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp2z7n5nbc.wav and format None.
+2026-03-08 19:37:46.047 | INFO     | __main__:handle_voice:60 - 🎤 Получено голосовое сообщение
+2026-03-08 19:37:47.123 | INFO     | __main__:handle_voice:71 - 📁 OGG файл скачан, размер: 11619 байт
+2026-03-08 19:37:47.200 | INFO     | __main__:handle_voice:76 - ⏱️ Длительность аудио: 2.71 сек
+2026-03-08 19:37:47.202 | INFO     | __main__:handle_voice:80 - 📊 WAV файл создан, размер: 173708 байт
+2026-03-08 19:37:47.202 | ERROR    | __main__:handle_voice:110 - Ошибка обработки голоса: Couldn't find appropriate backend to handle uri /var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmpxucatlyz.wav and format None.
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 158, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x11038a0c0>
+    │       └ <function run at 0x10363a520>
+    └ <module 'asyncio' from '/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/__init__.py'>
+
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x11030e110>
+           │      └ <function Runner.run at 0x1036ca200>
+           └ <asyncio.runners.Runner object at 0x11037dbe0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py:148> w...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x1036bfd80>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x11037dbe0>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 672, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x1036bfce0>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 639, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x1036c9b20>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 1985, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x103613600>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fc489d0>()>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fc489d0>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fc489d0>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x11fc489d0>()>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1233, in _update_fetcher
+    await self.__update_fetcher()
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1229, in __update_fetcher
+    await self.__process_update_wrapper(update)
+          │                             └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1244, in __process_update_wrapper
+    await self._update_processor.process_update(update, self.process_update(update))
+          │    │                                │       │    │              └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    │                                │       │    └ <function Application.process_update at 0x10a568720>
+          │    │                                │       └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+          │    │                                └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <member '_update_processor' of 'Application' objects>
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 171, in process_update
+    await self.do_process_update(update, coroutine)
+          │    │                 │       └ <coroutine object Application.process_update at 0x11fab4cc0>
+          │    │                 └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <function SimpleUpdateProcessor.do_process_update at 0x10a569d00>
+          └ <telegram.ext._baseupdateprocessor.SimpleUpdateProcessor object at 0x1103907d0>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 196, in do_process_update
+    await coroutine
+          └ <coroutine object Application.process_update at 0x11fab4cc0>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1315, in process_update
+    await coroutine
+          └ <coroutine object BaseHandler.handle_update at 0x11fafcd40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_handlers/basehandler.py", line 159, in handle_update
+    return await self.callback(update, context)
+                 │    │        │       └ <telegram.ext._callbackcontext.CallbackContext object at 0x11fc34590>
+                 │    │        └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+                 │    └ <member 'callback' of 'BaseHandler' objects>
+                 └ MessageHandler[callback=handle_voice]
+
+> File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 83, in handle_voice
+    waveform, sample_rate = torchaudio.load(wav_path)
+                            │          │    └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmpxucatlyz.wav'
+                            │          └ <function get_load_func.<locals>.load at 0x108891ee0>
+                            └ <module 'torchaudio' from '/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio...
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio/_backend/utils.py", line 204, in load
+    backend = dispatcher(uri, format, backend)
+              │          │    │       └ None
+              │          │    └ None
+              │          └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmpxucatlyz.wav'
+              └ <function get_load_func.<locals>.dispatcher at 0x108891e40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/torchaudio/_backend/utils.py", line 116, in dispatcher
+    raise RuntimeError(f"Couldn't find appropriate backend to handle uri {uri} and format {format}.")
+                                                                          │                └ None
+                                                                          └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmpxucatlyz.wav'
+
+RuntimeError: Couldn't find appropriate backend to handle uri /var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmpxucatlyz.wav and format None.
+2026-03-08 19:40:06.140 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:40:06.140 | INFO     | __main__:main:122 - ✅ Пул БД инициализирован
+2026-03-08 19:40:06.140 | INFO     | __main__:init_stt_model:42 - 🎤 Загрузка модели GigaAM-RNNT через transformers...
+2026-03-08 19:40:10.004 | INFO     | __main__:init_stt_model:53 - ✅ Модель GigaAM загружена и готова к работе
+2026-03-08 19:40:10.063 | INFO     | __main__:main:142 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:40:44.857 | INFO     | __main__:handle_voice:60 - 🎤 Получено голосовое сообщение
+2026-03-08 19:40:46.502 | INFO     | __main__:handle_voice:71 - 📁 OGG файл скачан, размер: 11301 байт
+2026-03-08 19:40:46.603 | INFO     | __main__:handle_voice:76 - ⏱️ Длительность аудио: 2.63 сек
+2026-03-08 19:40:46.605 | INFO     | __main__:handle_voice:80 - 📊 WAV файл создан, размер: 168588 байт
+2026-03-08 19:40:46.605 | INFO     | __main__:handle_voice:86 - 🔊 Максимальная амплитуда: 19196.7207
+2026-03-08 19:40:47.897 | INFO     | __main__:handle_voice:103 - 📝 Распознанный текст: ''
+2026-03-08 19:41:16.946 | INFO     | __main__:handle_voice:60 - 🎤 Получено голосовое сообщение
+2026-03-08 19:41:18.156 | INFO     | __main__:handle_voice:71 - 📁 OGG файл скачан, размер: 13951 байт
+2026-03-08 19:41:18.246 | INFO     | __main__:handle_voice:76 - ⏱️ Длительность аудио: 3.29 сек
+2026-03-08 19:41:18.249 | INFO     | __main__:handle_voice:80 - 📊 WAV файл создан, размер: 210828 байт
+2026-03-08 19:41:18.249 | INFO     | __main__:handle_voice:86 - 🔊 Максимальная амплитуда: 61166.5664
+2026-03-08 19:41:19.860 | INFO     | __main__:handle_voice:103 - 📝 Распознанный текст: ''
+2026-03-08 19:42:39.245 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:42:39.246 | INFO     | __main__:main:104 - ✅ Пул БД инициализирован
+2026-03-08 19:42:39.246 | INFO     | __main__:init_stt_model:39 - 🎤 Загрузка модели GigaAM-RNNT через pipeline...
+2026-03-08 19:44:06.775 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:44:06.775 | INFO     | __main__:main:112 - ✅ Пул БД инициализирован
+2026-03-08 19:44:06.775 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM-CTC...
+2026-03-08 19:45:13.573 | INFO     | __main__:init_stt_model:45 - ✅ Модель GigaAM-CTC загружена и готова к работе
+2026-03-08 19:45:13.639 | INFO     | __main__:main:132 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:45:38.143 | INFO     | __main__:handle_voice:52 - 🎤 Получено голосовое сообщение
+2026-03-08 19:45:39.549 | INFO     | __main__:handle_voice:63 - 📁 OGG файл скачан, размер: 9724 байт
+2026-03-08 19:45:39.686 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 2.23 сек
+2026-03-08 19:45:39.688 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 142988 байт
+2026-03-08 19:45:39.689 | INFO     | __main__:handle_voice:76 - 🔊 Максимальная амплитуда: 21844.7832
+2026-03-08 19:45:39.827 | INFO     | __main__:handle_voice:93 - 📝 Распознанный текст: ''
+2026-03-08 19:45:49.048 | INFO     | __main__:handle_voice:52 - 🎤 Получено голосовое сообщение
+2026-03-08 19:45:50.246 | INFO     | __main__:handle_voice:63 - 📁 OGG файл скачан, размер: 9373 байт
+2026-03-08 19:45:50.333 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 2.13 сек
+2026-03-08 19:45:50.335 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 136588 байт
+2026-03-08 19:45:50.336 | INFO     | __main__:handle_voice:76 - 🔊 Максимальная амплитуда: 46267.8789
+2026-03-08 19:45:50.425 | INFO     | __main__:handle_voice:93 - 📝 Распознанный текст: ''
+2026-03-08 19:45:56.908 | INFO     | __main__:handle_voice:52 - 🎤 Получено голосовое сообщение
+2026-03-08 19:45:58.015 | INFO     | __main__:handle_voice:63 - 📁 OGG файл скачан, размер: 10505 байт
+2026-03-08 19:45:58.120 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 2.43 сек
+2026-03-08 19:45:58.122 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 155788 байт
+2026-03-08 19:45:58.123 | INFO     | __main__:handle_voice:76 - 🔊 Максимальная амплитуда: 65536.0000
+2026-03-08 19:45:58.260 | INFO     | __main__:handle_voice:93 - 📝 Распознанный текст: ''
+2026-03-08 19:48:07.878 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 19:48:07.878 | INFO     | __main__:main:116 - ✅ Пул БД инициализирован
+2026-03-08 19:48:07.878 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели GigaAM-CTC...
+2026-03-08 19:48:10.601 | INFO     | __main__:init_stt_model:45 - ✅ Модель GigaAM-CTC загружена и готова к работе
+2026-03-08 19:48:10.674 | INFO     | __main__:main:136 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 19:49:03.147 | INFO     | __main__:handle_voice:52 - 🎤 Получено голосовое сообщение
+2026-03-08 19:49:04.796 | INFO     | __main__:handle_voice:63 - 📁 OGG файл скачан, размер: 64763 байт
+2026-03-08 19:49:04.910 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 3.13 сек
+2026-03-08 19:49:04.912 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 200588 байт
+2026-03-08 19:49:04.913 | INFO     | __main__:handle_voice:78 - 🔊 Исходная макс амплитуда: 64962.7383
+2026-03-08 19:49:04.913 | INFO     | __main__:handle_voice:81 - 🔊 Нормализовано, новая макс амплитуда: 1.0000
+2026-03-08 19:49:05.029 | INFO     | __main__:handle_voice:97 - 📝 Распознанный текст: ''
+2026-03-08 19:50:06.019 | INFO     | __main__:handle_voice:52 - 🎤 Получено голосовое сообщение
+2026-03-08 19:50:07.240 | INFO     | __main__:handle_voice:63 - 📁 OGG файл скачан, размер: 12978 байт
+2026-03-08 19:50:07.335 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 3.05 сек
+2026-03-08 19:50:07.337 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 195468 байт
+2026-03-08 19:50:07.338 | INFO     | __main__:handle_voice:78 - 🔊 Исходная макс амплитуда: 34782.1680
+2026-03-08 19:50:07.338 | INFO     | __main__:handle_voice:81 - 🔊 Нормализовано, новая макс амплитуда: 1.0000
+2026-03-08 19:50:07.457 | INFO     | __main__:handle_voice:97 - 📝 Распознанный текст: ''
+2026-03-08 20:20:23.475 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 20:20:23.475 | INFO     | __main__:main:123 - ✅ Пул БД инициализирован
+2026-03-08 20:20:23.476 | INFO     | __main__:init_stt_model:43 - 🎤 Загрузка модели GigaAM-CTC...
+2026-03-08 20:20:26.332 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM-CTC загружена и готова к работе
+2026-03-08 20:20:26.400 | INFO     | __main__:main:146 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 20:21:00.054 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 20:21:01.147 | INFO     | __main__:handle_voice:65 - 📁 OGG файл скачан, размер: 7963 байт
+2026-03-08 20:21:01.246 | INFO     | __main__:handle_voice:69 - ⏱️ Длительность аудио: 1.79 сек
+2026-03-08 20:21:01.248 | INFO     | __main__:handle_voice:73 - 📊 WAV файл создан, размер: 114828 байт
+2026-03-08 20:21:01.248 | INFO     | __main__:handle_voice:79 - 🔊 Макс амплитуда до норм: 50302.0586
+2026-03-08 20:21:01.248 | INFO     | __main__:handle_voice:82 - 🔊 Нормализовано до 1.0
+2026-03-08 20:21:01.333 | INFO     | __main__:handle_voice:103 - 📝 Распознанный текст: ''
+2026-03-08 20:23:34.521 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 20:23:34.521 | INFO     | __main__:main:102 - ✅ Пул БД инициализирован
+2026-03-08 20:23:34.522 | INFO     | __main__:init_stt_model:39 - 🎤 Загрузка модели faster-whisper (medium)...
+2026-03-08 20:26:27.152 | INFO     | __main__:init_stt_model:42 - ✅ Модель faster-whisper загружена
+2026-03-08 20:26:27.236 | INFO     | __main__:main:122 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 20:27:30.933 | INFO     | __main__:handle_voice:49 - 🎤 Получено голосовое сообщение
+2026-03-08 20:27:32.483 | INFO     | __main__:handle_voice:60 - 📁 OGG файл скачан, размер: 8106 байт
+2026-03-08 20:27:32.699 | INFO     | __main__:handle_voice:64 - ⏱️ Длительность аудио: 1.83 сек
+2026-03-08 20:27:32.701 | INFO     | __main__:handle_voice:68 - 📊 WAV файл создан, размер: 117388 байт
+2026-03-08 20:27:32.701 | INFO     | __main__:handle_voice:74 - 🔊 Макс амплитуда: 29527.3887
+2026-03-08 20:27:32.701 | INFO     | __main__:handle_voice:77 - 🔊 Нормализовано до 1.0
+2026-03-08 20:27:35.425 | INFO     | __main__:handle_voice:83 - 📝 Распознанный текст: ' Привет!'
+2026-03-08 20:30:39.032 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 20:30:39.033 | INFO     | __main__:main:117 - ✅ Пул БД инициализирован
+2026-03-08 20:30:39.033 | INFO     | __main__:init_stt_model:43 - 🎤 Загрузка модели GigaAM-CTC...
+2026-03-08 20:30:41.824 | INFO     | __main__:init_stt_model:47 - ✅ Модель GigaAM-CTC загружена и готова к работе
+2026-03-08 20:30:41.896 | INFO     | __main__:main:137 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 20:31:06.135 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 20:31:07.178 | INFO     | __main__:handle_voice:65 - 📁 OGG файл скачан, размер: 8266 байт
+2026-03-08 20:31:07.269 | INFO     | __main__:handle_voice:69 - ⏱️ Длительность аудио: 1.87 сек
+2026-03-08 20:31:07.271 | INFO     | __main__:handle_voice:73 - 📊 WAV файл создан, размер: 119948 байт
+2026-03-08 20:31:07.271 | INFO     | __main__:handle_voice:78 - 🔊 Макс амплитуда до норм: 32938.2461
+2026-03-08 20:31:07.271 | INFO     | __main__:handle_voice:81 - 🔊 Нормализовано до 1.0
+2026-03-08 20:31:07.359 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 20:31:15.119 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 20:31:16.204 | INFO     | __main__:handle_voice:65 - 📁 OGG файл скачан, размер: 10424 байт
+2026-03-08 20:31:16.308 | INFO     | __main__:handle_voice:69 - ⏱️ Длительность аудио: 2.41 сек
+2026-03-08 20:31:16.310 | INFO     | __main__:handle_voice:73 - 📊 WAV файл создан, размер: 154508 байт
+2026-03-08 20:31:16.310 | INFO     | __main__:handle_voice:78 - 🔊 Макс амплитуда до норм: 65536.0000
+2026-03-08 20:31:16.310 | INFO     | __main__:handle_voice:81 - 🔊 Нормализовано до 1.0
+2026-03-08 20:31:16.397 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 20:31:21.863 | INFO     | __main__:handle_voice:54 - 🎤 Получено голосовое сообщение
+2026-03-08 20:31:22.960 | INFO     | __main__:handle_voice:65 - 📁 OGG файл скачан, размер: 9321 байт
+2026-03-08 20:31:23.065 | INFO     | __main__:handle_voice:69 - ⏱️ Длительность аудио: 2.13 сек
+2026-03-08 20:31:23.067 | INFO     | __main__:handle_voice:73 - 📊 WAV файл создан, размер: 136588 байт
+2026-03-08 20:31:23.068 | INFO     | __main__:handle_voice:78 - 🔊 Макс амплитуда до норм: 36415.6250
+2026-03-08 20:31:23.068 | INFO     | __main__:handle_voice:81 - 🔊 Нормализовано до 1.0
+2026-03-08 20:31:23.153 | INFO     | __main__:handle_voice:98 - 📝 Распознанный текст: ''
+2026-03-08 20:41:27.040 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 20:41:27.042 | INFO     | __main__:main:101 - ✅ Пул БД инициализирован
+2026-03-08 20:41:27.042 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели T-one...
+2026-03-08 20:50:50.334 | INFO     | __main__:init_stt_model:44 - ✅ Модель T-one загружена и готова к работе
+2026-03-08 20:50:50.493 | INFO     | __main__:main:121 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 20:55:40.986 | INFO     | __main__:handle_voice:51 - 🎤 Получено голосовое сообщение
+2026-03-08 20:55:42.685 | INFO     | __main__:handle_voice:62 - 📁 OGG файл скачан, размер: 12466 байт
+2026-03-08 20:55:42.807 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 2.93 сек
+2026-03-08 20:55:42.810 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 187788 байт
+2026-03-08 20:55:42.810 | ERROR    | __main__:handle_voice:90 - Ошибка обработки голоса: Package 'miniaudio' not found.
+Install it with the following command:
+  poetry install -E demo   # using package extras
+
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/tone/demo/read_audio.py", line 42, in read_audio
+    import miniaudio
+
+ModuleNotFoundError: No module named 'miniaudio'
+
+
+The above exception was the direct cause of the following exception:
+
+
+Traceback (most recent call last):
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 138, in <module>
+    asyncio.run(main())
+    │       │   └ <function main at 0x124cb5940>
+    │       └ <function run at 0x104bed580>
+    └ <module 'asyncio' from '/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/__init__.py'>
+
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           │      │   └ <coroutine object main at 0x124c25a80>
+           │      └ <function Runner.run at 0x104c79260>
+           └ <asyncio.runners.Runner object at 0x124c93c80>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           │    │     │                  └ <Task pending name='Task-1' coro=<main() running at /Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py:128> w...
+           │    │     └ <function BaseEventLoop.run_until_complete at 0x104c72de0>
+           │    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+           └ <asyncio.runners.Runner object at 0x124c93c80>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 672, in run_until_complete
+    self.run_forever()
+    │    └ <function BaseEventLoop.run_forever at 0x104c72d40>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 639, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x104c78b80>
+    └ <_UnixSelectorEventLoop running=True closed=False debug=False>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 1985, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x104bc6660>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1376a5d50>()>
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/events.py", line 88, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1376a5d50>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1376a5d50>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <_asyncio.TaskStepMethWrapper object at 0x1376a5d50>()>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1233, in _update_fetcher
+    await self.__update_fetcher()
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1229, in __update_fetcher
+    await self.__process_update_wrapper(update)
+          │                             └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1244, in __process_update_wrapper
+    await self._update_processor.process_update(update, self.process_update(update))
+          │    │                                │       │    │              └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    │                                │       │    └ <function Application.process_update at 0x114744e00>
+          │    │                                │       └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+          │    │                                └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <member '_update_processor' of 'Application' objects>
+          └ Application[bot=ExtBot[token=8568397533:AAFMNGaO6V4K9da5au8FKG0O9D-4rAc_yyk]]
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 171, in process_update
+    await self.do_process_update(update, coroutine)
+          │    │                 │       └ <coroutine object Application.process_update at 0x13754ad40>
+          │    │                 └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+          │    └ <function SimpleUpdateProcessor.do_process_update at 0x1147463e0>
+          └ <telegram.ext._baseupdateprocessor.SimpleUpdateProcessor object at 0x1222d2490>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_baseupdateprocessor.py", line 196, in do_process_update
+    await coroutine
+          └ <coroutine object Application.process_update at 0x13754ad40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_application.py", line 1315, in process_update
+    await coroutine
+          └ <coroutine object BaseHandler.handle_update at 0x137652c40>
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/telegram/ext/_handlers/basehandler.py", line 159, in handle_update
+    return await self.callback(update, context)
+                 │    │        │       └ <telegram.ext._callbackcontext.CallbackContext object at 0x13765fc40>
+                 │    │        └ Update(message=Message(channel_chat_created=False, chat=Chat(first_name='Денис', id=1011981602, last_name='Левицкий', type=<C...
+                 │    └ <member 'callback' of 'BaseHandler' objects>
+                 └ MessageHandler[callback=handle_voice]
+
+> File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/main_local.py", line 75, in handle_voice
+    audio_array = read_audio(wav_path)
+                  │          └ '/var/folders/fh/ljlchnhs33597jvwmp4v3wpr0000gn/T/tmp05v_0z_q.wav'
+                  └ <function read_audio at 0x1222a9a80>
+
+  File "/Users/denislevitskiy/Desktop/deepseek-rag-assistant/.venv/lib/python3.12/site-packages/tone/demo/read_audio.py", line 44, in read_audio
+    raise ModuleNotFoundError(
+
+ModuleNotFoundError: Package 'miniaudio' not found.
+Install it with the following command:
+  poetry install -E demo   # using package extras
+
+2026-03-08 21:01:14.686 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 21:01:14.687 | INFO     | __main__:main:101 - ✅ Пул БД инициализирован
+2026-03-08 21:01:14.688 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели T-one...
+2026-03-08 21:01:19.707 | INFO     | __main__:init_stt_model:44 - ✅ Модель T-one загружена и готова к работе
+2026-03-08 21:01:19.860 | INFO     | __main__:main:121 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 21:02:04.658 | INFO     | services.db:init_db_pool:20 - ✅ Пул соединений с PostgreSQL создан с поддержкой pgvector
+2026-03-08 21:02:04.659 | INFO     | __main__:main:101 - ✅ Пул БД инициализирован
+2026-03-08 21:02:04.659 | INFO     | __main__:init_stt_model:41 - 🎤 Загрузка модели T-one...
+2026-03-08 21:02:07.308 | INFO     | __main__:init_stt_model:44 - ✅ Модель T-one загружена и готова к работе
+2026-03-08 21:02:07.373 | INFO     | __main__:main:121 - 🚀 Запуск локального теста в режиме polling...
+2026-03-08 21:02:26.776 | INFO     | __main__:handle_voice:51 - 🎤 Получено голосовое сообщение
+2026-03-08 21:02:27.820 | INFO     | __main__:handle_voice:62 - 📁 OGG файл скачан, размер: 12235 байт
+2026-03-08 21:02:27.938 | INFO     | __main__:handle_voice:67 - ⏱️ Длительность аудио: 2.87 сек
+2026-03-08 21:02:27.940 | INFO     | __main__:handle_voice:71 - 📊 WAV файл создан, размер: 183948 байт
+2026-03-08 21:02:28.695 | INFO     | __main__:handle_voice:82 - 📝 Распознанный текст: 'привет как у тебя дела'

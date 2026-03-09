@@ -3,24 +3,44 @@
 <h1>Документы клиента: {{ client_name }}</h1>
 <a href="{{ url_for('upload_document', client_id=client_id) }}" class="btn btn-primary mb-3">Загрузить документ</a>
 <a href="{{ url_for('clients') }}" class="btn btn-secondary mb-3">← Назад к клиентам</a>
-<table class="table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Содержание (первые 200 символов)</th>
-            <th>Метаданные</th>
-            <th>Дата загрузки</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for doc in documents %}
-        <tr>
-            <td>{{ doc.id }}</td>
-            <td>{{ doc.content[:200] }}...</td>
-            <td><pre>{{ doc.metadata | tojson(indent=2) }}</pre></td>
-            <td>{{ doc.created_at }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+{% if document_groups %}
+    {% for group in document_groups %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ group.filename }}</h5>
+            <div>
+                <span class="badge bg-info me-2">{{ group.chunk_count }} чанков</span>
+                <span class="text-muted me-3">{{ group.first_created.strftime('%d.%m.%Y %H:%M') }}</span>
+                <form action="{{ url_for('delete_document_by_filename', client_id=client_id) }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="filename" value="{{ group.filename }}">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Удалить весь документ «{{ group.filename }}» и все его чанки? Это действие необратимо.')">Удалить документ</button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Содержание (первые 200 символов)</th>
+                        <th>Дата загрузки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chunk in group.chunks %}
+                    <tr>
+                        <td>{{ chunk.id }}</td>
+                        <td>{{ chunk.content[:200] }}...</td>
+                        <td>{{ chunk.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<p>Нет загруженных документов.</p>
+{% endif %}
 {% endblock %}

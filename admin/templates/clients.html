@@ -9,12 +9,20 @@
             <th>Контакты</th>
             <th>Активен</th>
             <th>Внедрение</th>
-            <th>Использование</th>
+            <th>Использование (лиды / документы)</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
         {% for client in clients %}
+        {% set sub = client.subscription %}
+        {% set usage = client.usage %}
+        {% set leads_limit = sub.lead_limit if sub else 0 %}
+        {% set docs_limit = sub.features.documents_limit if sub and sub.features else 0 %}
+        {# Вычисляем процент использования для лидов #}
+        {% set leads_percent = (usage.leads_used / leads_limit * 100) | round if leads_limit and leads_limit > 0 else 0 %}
+        {# Для документов используем лимит из features #}
+        {% set docs_percent = (usage.docs_used / docs_limit * 100) | round if docs_limit and docs_limit > 0 else 0 %}
         <tr>
             <td>{{ client.name }}</td>
             <td>{{ client.contact_email }}<br>{{ client.contact_phone }}</td>
@@ -27,16 +35,28 @@
                 {% endif %}
             </td>
             <td>
-                {% if client.subscription %}
-                    Лиды: {{ client.usage.leads_used }} / 
-                    {% if client.subscription.lead_limit == -1 %}∞{% else %}{{ client.subscription.lead_limit }}{% endif %}<br>
-                    Документы: {{ client.usage.docs_used }} / 
-                    {% if client.subscription.features and client.subscription.features.documents_limit %}
-                        {{ client.subscription.features.documents_limit }}
-                    {% else %}0{% endif %}
-                {% else %}
-                    Нет подписки
-                {% endif %}
+                <div class="mb-1">
+                    <strong>Лиды:</strong> {{ usage.leads_used }} / 
+                    {% if leads_limit == -1 %}∞{% else %}{{ leads_limit }}{% endif %}
+                    {% if leads_limit > 0 %}
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar {% if leads_percent >= 90 %}bg-danger{% elif leads_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" style="width: {{ leads_percent }}%;" 
+                                 aria-valuenow="{{ leads_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <strong>Документы:</strong> {{ usage.docs_used }} / 
+                    {% if docs_limit %}{{ docs_limit }}{% else %}0{% endif %}
+                    {% if docs_limit > 0 %}
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar {% if docs_percent >= 90 %}bg-danger{% elif docs_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 role="progressbar" style="width: {{ docs_percent }}%;" 
+                                 aria-valuenow="{{ docs_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    {% endif %}
+                </div>
             </td>
             <td>
                 <a href="{{ url_for('client_edit', client_id=client.id) }}" class="btn btn-sm btn-warning">Ред.</a>
