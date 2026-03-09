@@ -240,10 +240,6 @@ async def load_session(user_id: int, client_id: str):
     }
 
 # Функция save_session импортируется из services.db, поэтому здесь её определять не нужно.
-# В текущем файле она была определена, но теперь мы будем использовать импортированную.
-# Убедимся, что в коде вызывается именно импортированная версия (в handle_message и start).
-# Я оставлю этот комментарий, а само определение удалю, чтобы не было конфликта.
-# Ниже в коде вызовы save_session остаются без изменений, они будут использовать импортированную функцию.
 
 # ======================================================
 # CONVERSATION ENGINE (LLM)
@@ -457,14 +453,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         context.user_data['messages'].append(now)
 
-        current_text = update.message.text or ""
-        if 'last_text' in context.user_data and context.user_data['last_text'] == current_text:
+        # ======================================================
+        # 🎤 Обработка голосовых сообщений (текст берётся из context.user_data)
+        # ======================================================
+        if 'voice_text' in context.user_data:
+            text = context.user_data.pop('voice_text')
+            logger.info(f"📢 Обработка голосового текста: {text}")
+        else:
+            text = update.message.text or ""
+
+        # Защита от повторов
+        if 'last_text' in context.user_data and context.user_data['last_text'] == text:
             last_time = context.user_data.get('last_time')
             if last_time and (now - last_time).seconds < 10:
                 await update.message.reply_text("🔄 Вы только что отправляли это сообщение. Пожалуйста, подождите немного.")
                 return
 
-        context.user_data['last_text'] = current_text
+        context.user_data['last_text'] = text
         context.user_data['last_time'] = now
 
         if not CLIENT_ID:
@@ -495,7 +500,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 logger.exception(e)
 
-        text = update.message.text or ""
+        # text уже определён выше, поэтому следующую строку удаляем:
+        # text = update.message.text or ""
 
         try:
             session = await load_session(user_id, CLIENT_ID)
@@ -734,4 +740,3 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
 
     await update.message.reply_text(welcome_message.strip())
-    

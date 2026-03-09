@@ -70,7 +70,7 @@ def init_stt_model():
     return asr_pipeline
 
 # ======================================================
-# Обработчик голосовых сообщений
+# Обработчик голосовых сообщений (ИСПРАВЛЕННЫЙ)
 # ======================================================
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("🎤 Получено голосовое сообщение")
@@ -104,7 +104,10 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"📝 Распознанный текст: '{full_text}'")
 
         if full_text.strip():
-            await update.message.reply_text(f"🎤 Распознано: {full_text}")
+            # Сохраняем текст в context.user_data для передачи в handle_message
+            context.user_data['voice_text'] = full_text
+            # Вызываем основной обработчик сообщений
+            await handle_message(update, context)
         else:
             await update.message.reply_text("🤔 Не удалось распознать речь. Попробуйте говорить чётче.")
 
